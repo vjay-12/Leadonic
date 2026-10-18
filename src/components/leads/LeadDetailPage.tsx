@@ -3,8 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
-import { Lead } from '../../types'
+import { Lead, ContactLog } from '../../types'
 import { AddLeadModal } from './AddLeadModal'
+import { RecordContactDialog } from './RecordContactDialog'
+import { formatDateShort } from '../../../lib/date'
 import {
   ArrowLeft,
   Phone,
@@ -23,6 +25,9 @@ import {
   XCircle,
   Clock,
   Sparkles,
+  PhoneCall,
+  History,
+  Pencil,
 } from 'lucide-react'
 
 export const LeadDetailPage: React.FC = () => {
@@ -34,9 +39,11 @@ export const LeadDetailPage: React.FC = () => {
   const leadId = Number(id)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false)
+  const [editingContact, setEditingContact] = useState<ContactLog | null>(null)
+  const [contactToDelete, setContactToDelete] = useState<ContactLog | null>(null)
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [localRemarks, setLocalRemarks] = useState<string | null>(null)
 
   // Fetch lead data
   const {
@@ -51,7 +58,14 @@ export const LeadDetailPage: React.FC = () => {
     enabled: !isNaN(leadId),
   })
 
-  // Fetch statuses and categories for tracking dropdowns
+  // Fetch contact logs for lead (newest first)
+  const { data: contactLogs = [] } = useQuery({
+    queryKey: ['leadContacts', leadId],
+    queryFn: () => api.getLeadContacts(leadId),
+    enabled: !isNaN(leadId),
+  })
+
+  // Fetch statuses and categories
   const { data: statuses = [] } = useQuery({
     queryKey: ['statuses'],
     queryFn: () => api.getStatuses(),
@@ -62,16 +76,15 @@ export const LeadDetailPage: React.FC = () => {
     queryFn: () => api.getCategories(),
   })
 
-  // Update lead mutation (for tracking dropdowns and remarks on blur)
+  // Update lead mutation (for category change)
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Lead>) => api.updateLead(leadId, data),
     onSuccess: (updated) => {
       queryClient.setQueryData(['lead', leadId], updated)
       queryClient.invalidateQueries({ queryKey: ['leads'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['statuses'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      success('Saved successfully')
+      success('Category updated')
     },
     onError: (err: any) => {
       toastError(err.message || 'Failed to update lead')
@@ -107,7 +120,7 @@ export const LeadDetailPage: React.FC = () => {
     },
   })
 
-  // Delete mutation (allowed only for archived leads)
+  // Delete lead mutation (allowed only for archived leads)
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteLead(leadId),
     onSuccess: () => {
@@ -119,6 +132,22 @@ export const LeadDetailPage: React.FC = () => {
     },
     onError: (err: any) => {
       toastError(err.message || 'Failed to delete lead')
+    },
+  })
+
+  // Delete contact log mutation
+  const deleteContactMutation = useMutation({
+    mutationFn: (contactId: number) => api.deleteContact(contactId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leadContacts', leadId] })
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      setContactToDelete(null)
+      success('Contact log deleted')
+    },
+    onError: (err: any) => {
+      toastError(err.message || 'Failed to delete contact log')
     },
   })
 
@@ -193,14 +222,7 @@ export const LeadDetailPage: React.FC = () => {
 
   const isArchived = Boolean(lead.archivedAt)
   const currentStatus = lead.status
-  const statusColor = currentStatus?.color || '#94A3B8'
-  const remarksValue = localRemarks !== null ? localRemarks : lead.remarks || ''
-
-  const handleRemarksBlur = () => {
-    if (localRemarks !== null && localRemarks.trim() !== (lead.remarks || '').trim()) {
-      updateMutation.mutate({ remarks: localRemarks.trim() || null })
-    }
-  }
+  const statusColor = currentStatus?.color || '#64748B'
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
@@ -237,18 +259,25 @@ export const LeadDetailPage: React.FC = () => {
                 <span>{lead.category?.name || 'Uncategorized'}</span>
               </span>
 
-              {/* Status Pill */}
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
-                style={{
-                  backgroundColor: `${statusColor}15`,
-                  borderColor: `${statusColor}40`,
-                  color: statusColor,
-                }}
-              >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
-                <span>{currentStatus?.name || 'Not called'}</span>
-              </span>
+              {/* Status Pill (Read-only) */}
+              {currentStatus ? (
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                  style={{
+                    backgroundColor: `${statusColor}15`,
+                    borderColor: `${statusColor}40`,
+                    color: statusColor,
+                  }}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
+                  <span>{currentStatus.name}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span>Not called</span>
+                </span>
+              )}
 
               {/* Priority Badge */}
               {lead.priority && (
@@ -281,6 +310,20 @@ export const LeadDetailPage: React.FC = () => {
 
           {/* Action buttons at top right */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {/* Record Contact button (hidden for archived leads) */}
+            {!isArchived && (
+              <button
+                onClick={() => {
+                  setEditingContact(null)
+                  setIsRecordModalOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-xs"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Record Contact</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsEditModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-xs"
@@ -541,35 +584,43 @@ export const LeadDetailPage: React.FC = () => {
         <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
           <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Tracking & Follow-up</h2>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Tracking & Category</h2>
           </div>
 
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Status Dropdown */}
-              <div>
-                <label className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block mb-1">
-                  Status
-                </label>
-                <select
-                  value={lead.statusId || ''}
-                  onChange={(e) => {
-                    const val = e.target.value ? Number(e.target.value) : null
-                    updateMutation.mutate({ statusId: val })
-                  }}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="">Not called (No status)</option>
-                  {statuses.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+              {/* Status: Read-Only pill (status changes only through contact logs) */}
+              <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
+                <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block mb-1">
+                  Current Status (Read-only)
+                </span>
+                <div className="mt-1">
+                  {currentStatus ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                      style={{
+                        backgroundColor: `${statusColor}15`,
+                        borderColor: `${statusColor}40`,
+                        color: statusColor,
+                      }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
+                      <span>{currentStatus.name}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                      <span className="w-2 h-2 rounded-full bg-slate-400" />
+                      <span>Not called</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Status is derived automatically from the latest contact record.
+                </p>
               </div>
 
               {/* Category Dropdown */}
-              <div>
+              <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
                 <label className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block mb-1">
                   Category
                 </label>
@@ -579,7 +630,7 @@ export const LeadDetailPage: React.FC = () => {
                     const val = e.target.value ? Number(e.target.value) : null
                     updateMutation.mutate({ categoryId: val })
                   }}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 mt-1 cursor-pointer"
                 >
                   <option value="">Unassigned</option>
                   {categories.map((c) => (
@@ -589,24 +640,6 @@ export const LeadDetailPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-            </div>
-
-            {/* Remarks (Editable, saves on blur) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                  Remarks / Calling Notes
-                </label>
-                <span className="text-[11px] text-slate-400">Saves on blur</span>
-              </div>
-              <textarea
-                rows={4}
-                value={remarksValue}
-                onChange={(e) => setLocalRemarks(e.target.value)}
-                onBlur={handleRemarksBlur}
-                placeholder="Log call conversation, requirements, or next action steps..."
-                className="w-full p-3 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
-              />
             </div>
           </div>
         </div>
@@ -650,6 +683,119 @@ export const LeadDetailPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* 5. Contact History Card (styled like Yaazhi's Stock Movement & Audit History) */}
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs md:col-span-2">
+          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-slate-500" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Contact History</h2>
+            </div>
+            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-xs font-semibold">
+              {contactLogs.length} {contactLogs.length === 1 ? 'record' : 'records'}
+            </span>
+          </div>
+
+          {contactLogs.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+              No contacts logged yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[120px]">
+                      Date
+                    </th>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[180px]">
+                      Status
+                    </th>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider">
+                      Notes
+                    </th>
+                    {!isArchived && (
+                      <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider text-right w-[80px]">
+                        Actions
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {contactLogs.map((log) => {
+                    const logStatusColor = log.status?.color || '#64748B'
+
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Date */}
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-700 font-medium">
+                          {formatDateShort(log.contactDate)}
+                          <span className="text-[10px] text-slate-400 block font-normal">
+                            {new Date(log.contactDate).toISOString().slice(0, 10)}
+                          </span>
+                        </td>
+
+                        {/* Status Pill */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {log.status ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border"
+                              style={{
+                                backgroundColor: `${logStatusColor}15`,
+                                borderColor: `${logStatusColor}40`,
+                                color: logStatusColor,
+                              }}
+                            >
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: logStatusColor }}
+                              />
+                              <span>{log.status.name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Notes */}
+                        <td className="px-4 py-3 text-slate-700 break-words whitespace-pre-wrap">
+                          {log.notes || <span className="text-slate-400 italic">No notes</span>}
+                        </td>
+
+                        {/* Actions (active leads only) */}
+                        {!isArchived && (
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingContact(log)
+                                  setIsRecordModalOpen(true)
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors cursor-pointer"
+                                title="Edit contact record"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setContactToDelete(log)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                title="Delete contact record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Modal (AddLeadModal prefilled) */}
@@ -660,6 +806,61 @@ export const LeadDetailPage: React.FC = () => {
         categories={categories}
         leadToEdit={lead}
       />
+
+      {/* Record Contact Modal */}
+      {isRecordModalOpen && (
+        <RecordContactDialog
+          isOpen={true}
+          onClose={() => {
+            setIsRecordModalOpen(false)
+            setEditingContact(null)
+          }}
+          leadId={lead.id}
+          leadTitle={lead.title}
+          statuses={statuses}
+          contactToEdit={editingContact}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['lead', lead.id] })
+            queryClient.invalidateQueries({ queryKey: ['leadContacts', lead.id] })
+            queryClient.invalidateQueries({ queryKey: ['leads'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          }}
+        />
+      )}
+
+      {/* Delete Contact Log Confirmation Dialog */}
+      {contactToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-xl max-w-sm w-full p-5 shadow-xl space-y-3">
+            <div className="flex items-center gap-2.5 text-rose-600">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-bold text-slate-900">Delete Contact Record?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete this contact log from{' '}
+              <span className="font-semibold text-slate-900">{formatDateShort(contactToDelete.contactDate)}</span>?
+              The lead's status will update to match its latest remaining log.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setContactToDelete(null)}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteContactMutation.mutate(contactToDelete.id)}
+                disabled={deleteContactMutation.isPending}
+                className="px-3 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-md cursor-pointer transition-colors shadow-xs disabled:opacity-60"
+              >
+                {deleteContactMutation.isPending ? 'Deleting...' : 'Delete Log'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Archive Confirmation Dialog */}
       {showArchiveConfirm && (

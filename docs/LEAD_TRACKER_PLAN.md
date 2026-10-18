@@ -155,6 +155,7 @@ model Lead {
   batchId         Int?          @map("batch_id")
   batch           ImportBatch?  @relation(fields: [batchId], references: [id])
   archivedAt      DateTime?     @map("archived_at")
+  contactLogs     ContactLog[]
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
@@ -163,6 +164,21 @@ model Lead {
   @@index([priority])
   @@index([archivedAt])
   @@map("leads")
+}
+
+model ContactLog {
+  id          Int          @id @default(autoincrement())
+  leadId      Int          @map("lead_id")
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactDate DateTime     @map("contact_date") @db.Date
+  statusId    Int          @map("status_id")
+  status      LeadStatus   @relation(fields: [statusId], references: [id])
+  notes       String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([leadId, contactDate])
+  @@map("contact_logs")
 }
 ```
 
@@ -262,14 +278,24 @@ The app is public on Vercel and holds business contact data, so protect it with 
   - `archived=archived`: filters `where: { archivedAt: { not: null } }`.
   - `statusId=none` means "no status".
   - `search` matches title, phone, address, emails (case-insensitive).
-  - Returns `{ items, total, page, pageSize }` with status and category included.
+  - Returns `{ items, total, page, pageSize }` with status, category, and latest contact log info (`latestNote`, `lastContactDate`).
 - `GET /api/leads/:id`: returns full lead details including batch info.
-- `POST /api/leads`: create one lead. Required: `title`. Compute `phoneNormalized` and `dedupeKey`. On duplicate, return **409** `{ error: "A lead with this phone already exists", existingId }`.
-- `PATCH /api/leads/:id`: update any field (status, category, remarks, and so on). Recompute the dedupe fields if title, phone or address change.
+- `POST /api/leads`: create one lead. Required: `title`. Compute `phoneNormalized` and `dedupeKey`. On duplicate, return **409** `{ error: "A lead with this phone already exists", existingId }`. Starts with no status.
+- `PATCH /api/leads/:id`: update lead fields (status is read-only and ignored/rejected). Recompute the dedupe fields if title, phone or address change.
 - `POST /api/leads/:id/archive`: sets `archivedAt = new Date()`.
 - `POST /api/leads/:id/restore`: sets `archivedAt = null`.
 - `DELETE /api/leads/:id`: allowed **only** for archived leads (`archivedAt !== null`). For active leads, returns **409** `{ error: "Archive this lead first." }`.
 - `GET /api/leads/export.csv?...`: follows the active/archived filter (defaults to active only), returns a CSV.
+
+### Contact recording & Status rule
+
+- **Status rule**: A lead's status is read-only everywhere; `PATCH /api/leads/:id` ignores/rejects `statusId`. Status changes **only** through contact logs.
+- After any contact log is created, edited or deleted, set the lead's status in a transaction to the status of its latest log (order by `contact_date desc`, then `created_at desc`). If no logs remain, set status to `null` ("Not called").
+- New and imported leads start with no status.
+- `GET /api/leads/:id/contacts`: returns all contact logs for the lead (newest first: `contactDate desc, createdAt desc`).
+- `POST /api/leads/:id/contacts` `{ contactDate, statusId, notes }`: rejects future dates (using Asia/Kolkata timezone for "today"), rejects archived leads. Creates log and updates lead status in a transaction.
+- `PATCH /api/contacts/:id` `{ contactDate, statusId, notes }`: updates log, validates date, re-syncs lead status in a transaction.
+- `DELETE /api/contacts/:id`: deletes log, re-syncs lead status in a transaction.
 
 ### Import
 
@@ -282,12 +308,15 @@ The app is public on Vercel and holds business contact data, so protect it with 
 - The browser parses the file, maps headers using `HEADER_TO_FIELD`, and sends rows in **chunks of 500** (Vercel request size limit).
 - For each row: skip when `title` is empty (count as an error with a reason); compute `phoneNormalized` and `dedupeKey`; skip duplicates inside the same file; skip rows whose `dedupeKey` already exists in the database.
 - **Archived leads still block duplicates on import** so they do not come back. The import summary reports `skippedArchivedCount` (how many skipped duplicates were archived).
+- Imported leads start with no status (`statusId: null`).
 - `dryRun: true` returns `{ willAdd, duplicates, skippedArchivedCount, errors: [{ row, reason }] }` and writes nothing.
 - `dryRun: false` creates an `ImportBatch` (first chunk only, then reuse its `batchId`), inserts with `createMany({ skipDuplicates: true })`, sets `categoryId` on every new lead, and returns `{ added, skipped, skippedArchivedCount, errors, batchId }`.
 
 ### Dashboard and report
 
-- `GET /api/dashboard` counts **active leads only** (`archivedAt: null`): `total`, `newThisWeek`, `notCalled` (no status), `byStatus` (name, color, count), `byCategory` (name, count), `byPriority` (priority, count).
+- `GET /api/dashboard` counts **active leads only** (`archivedAt: null`):
+  - `total`, `newThisWeek`, `notCalled` (no status), `byStatus` (name, color, count), `byCategory` (name, count), `byPriority` (priority, count).
+  - `contactedToday`: number of distinct active leads with a contact log dated today (evaluated in Asia/Kolkata timezone).
 - `GET /api/report?categoryId=&from=&to=` counts **active leads only**: returns a matrix: one row per category, one column per status plus "Not called" and "Total". `GET /api/report.csv` returns the same as CSV.
 
 ---
@@ -299,42 +328,42 @@ The app is public on Vercel and holds business contact data, so protect it with 
 - Read Yaazhi's `src` (layout, colors, fonts, spacing, buttons, tables, forms, sidebar) and **match it**. Reuse its design tokens where possible.
 - Clean light theme, one accent color, plain system or Inter font, generous spacing, thin borders, soft shadows only on dialogs and dropdowns.
 - **Do not use:** gradients, glassmorphism, glowing effects, emoji, sparkle or "magic" icons, animated backgrounds, or chat-style UI.
-- Status shows as a **colored pill** (like my sheet). Status and category dropdowns appear right in the table cell.
+- Status shows as a **colored pill** (like my sheet). Status is read-only in the table.
 - Sidebar on the left (Dashboard, Leads, Report, Settings, plus Logout at the bottom). On phones it collapses behind a menu button.
 - Every list has a proper empty state, a loading skeleton, and a clear error message with a retry button. Show a small toast after saving.
 
 ### Pages
 
 1. **Login:** one password field and a sign-in button.
-2. **Dashboard:** stat cards (Total leads, New this week, Not called, Interested) counting active leads only. Below, three simple lists or bar charts: by status, by category, by priority. Keep it plain.
+2. **Dashboard:** stat cards (Total leads, New this week, Not called, Contacted today) counting active leads only. Below, three simple lists or bar charts: by status, by category, by priority.
 3. **Leads (main screen):**
    - Toolbar: search box, filters (Status, Category, Priority, and **Active / Archived** toggle/filter, default Active), **Add Lead** button, **Import** button, **Export CSV**.
-   - **Table columns (strictly one row per lead, in this order):**
-     1. Title
-     2. Phone (clickable `tel:` link)
-     3. Category (compact dropdown)
-     4. Status (compact colored pill dropdown)
-     5. Remarks (inline edit, saves on blur, single-line with ellipsis and full text on hover)
-     6. Priority (badge)
-   - Removed columns: Rating, Website, Address, Emails, and row Actions buttons.
-   - **No horizontal scrolling at 1280px and wider.** Uses `table-layout: fixed` with set column widths. Title and Remarks stay on one line with an ellipsis, full text shows on hover (`title` attribute).
-   - Below 768px: responsive card layout (title, phone, status, category, remarks, priority).
-   - **Whole row is clickable** (pointer cursor, hover highlight, keyboard accessible). Phone link, status and category dropdowns, and remarks editor stop event propagation (`e.stopPropagation()`) so they do NOT trigger row click navigation.
-   - Row click navigates to `/leads/:id`.
-4. **Lead Detail Page (`/leads/:id`):**
-   - Replaces the old side panel with a dedicated full page styled like Yaazhi's Products & Stock detail page (using Leadonic's clean light theme).
-   - "Back to Leads" link/button at the top.
-   - **Header card:** title, category badge, status pill, priority badge, tap-to-call phone button. Action buttons at the top right: Edit, Archive (or Restore + Delete if archived).
-   - **Section cards with small uppercase labels and larger values:**
-     - **Contact:** phone, emails, website (external link), address (link to Google Maps).
+   - **Table columns and widths (table-layout: fixed, strictly fits in one row without horizontal scroll at 1280px and wider):**
+     1. Title (24%)
+     2. Phone (11%, clickable `tel:` link)
+     3. Category (9%, compact dropdown)
+     4. Status (12%, plain colored pill, no dropdown; "Not called" in grey when empty)
+     5. Latest note (22%, single line with ellipsis, full text on hover)
+     6. Priority (7%, badge)
+     7. Last contact (8%, e.g. "18 Oct", or "-" if none)
+     8. Record (7%, compact button: icon + "Record", ~30px tall, active leads only)
+   - Clicking the Record button opens the Record Contact dialog and stops propagation (does NOT trigger row click). Phone link and category dropdown also stop propagation.
+   - The whole row is clickable (navigates to `/leads/:id`).
+   - Below 768px: responsive cards showing title, phone, status, category, latest note, priority, last contact, with Record button at bottom.
+4. **Record Dialog:**
+   - Title: "Record Contact" with lead's name.
+   - Fields: Date (defaults to today in IST, can pick past date, rejects future dates), Status (required dropdown), Notes (textarea max 1000).
+   - On save: creates/updates contact log, refreshes data, shows toast.
+5. **Lead Detail Page (`/leads/:id`):**
+   - Header card: title, category badge, status pill, priority badge, tap-to-call phone button. Action buttons: **Record** (for active leads), **Edit**, **Archive** (or Restore + Delete if archived).
+   - Section cards:
+     - **Contact:** phone, emails, website (link), address (Google Maps link).
      - **Business info:** Maps category, rating and review count, has website, needs website, ERP match, needs ERP, priority score.
-     - **Tracking:** status dropdown, category dropdown, remarks (editable, saves on blur).
+     - **Tracking:** status (plain read-only pill), category dropdown.
+     - **Contact History card** (styled like Yaazhi's Stock Movement & Audit History): header "Contact History", "N records" count on right, table with Date, Status (pill), Notes (newest first). Each entry has edit and delete icons (edit opens Record dialog prefilled; delete asks confirmation). Archived leads are view-only. Empty state: "No contacts logged yet."
      - **Record info:** created, last updated, import batch file name.
-   - **Edit:** opens Add/Edit Lead form prefilled; saving updates the lead and shows a toast.
-   - **Archive:** asks for confirmation. An archived lead shows an "Archived" badge, Restore button, and Delete button. Delete asks for confirmation ("This cannot be undone"), then returns to `/leads`.
-   - Proper loading skeleton and "Lead not found" state.
-5. **Report (simple):** category by status table (active leads only) with filters for category and date range, and a **Download CSV** button.
-6. **Settings:** two tabs, **Statuses** and **Categories**. Each is a list where I can add, rename, change color (statuses only), reorder (drag handle), and delete. Show the lead count next to each item. Deleting something in use shows the 409 message.
+6. **Report:** category by status table (active leads only) with filters for category and date range, and **Download CSV** button.
+7. **Settings:** Statuses and Categories management.
 
 ---
 
@@ -361,7 +390,8 @@ Commit to `main` after each item. Tick the box when done.
 - [x] 8. Dashboard
 - [x] 9. Report and CSV exports
 - [x] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
-- [ ] 11. Leads table optimization (single-row fixed layout, responsive cards), Lead detail page (`/leads/:id`) matching Yaazhi style, Archive-before-delete workflow (schema migration, API endpoints, import check, UI)
+- [x] 11. Leads table optimization (single-row fixed layout, responsive cards), Lead detail page (`/leads/:id`) matching Yaazhi style, Archive-before-delete workflow (schema migration, API endpoints, import check, UI)
+- [ ] 12. Contact Recording: ContactLog schema & Neon migration, backfill existing leads, status derived from latest log, contact API endpoints, IST date validation, table layout with Record button & latest note/last contact, Record Contact dialog, Contact History card on detail page, and Contacted Today dashboard card.
 
 ## 10. Acceptance test (run before saying "done")
 

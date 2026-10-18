@@ -1,7 +1,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
-import { Users, Calendar, PhoneOff, ThumbsUp, RefreshCw, AlertCircle } from 'lucide-react'
+import { Users, Calendar, PhoneOff, ThumbsUp, RefreshCw, AlertCircle, PhoneCall } from 'lucide-react'
 
 export const DashboardView: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -16,8 +16,8 @@ export const DashboardView: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500">Pipeline summary and key metrics</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-28 bg-white border border-slate-200 rounded-lg p-5 animate-pulse" />
           ))}
         </div>
@@ -63,6 +63,13 @@ export const DashboardView: React.FC = () => {
       bg: 'bg-blue-50',
     },
     {
+      title: 'Contacted Today',
+      value: stats.contactedToday ?? 0,
+      icon: PhoneCall,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+    },
+    {
       title: 'New This Week',
       value: stats.newThisWeek,
       icon: Calendar,
@@ -102,8 +109,8 @@ export const DashboardView: React.FC = () => {
         </button>
       </div>
 
-      {/* Top 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top 5 Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon
           return (

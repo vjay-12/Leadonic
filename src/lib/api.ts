@@ -2,6 +2,7 @@ import {
   Lead,
   LeadStatus,
   LeadCategory,
+  ContactLog,
   LeadsResponse,
   DashboardStats,
   ReportData,
@@ -170,6 +171,37 @@ export const api = {
 
   async deleteLead(id: number): Promise<{ ok: boolean; id?: number }> {
     return request(`/api/leads/${id}`, { method: 'DELETE' })
+  },
+
+  // Contact logs
+  async getLeadContacts(leadId: number): Promise<ContactLog[]> {
+    return request(`/api/leads/${leadId}/contacts`)
+  },
+
+  async createLeadContact(
+    leadId: number,
+    data: { contactDate: string; statusId: number; notes?: string | null }
+  ): Promise<ContactLog> {
+    return request(`/api/leads/${leadId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async updateContact(
+    contactId: number,
+    data: { contactDate?: string; statusId?: number; notes?: string | null }
+  ): Promise<ContactLog> {
+    return request(`/api/contacts/${contactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async deleteContact(contactId: number): Promise<{ ok: boolean; id: number }> {
+    return request(`/api/contacts/${contactId}`, {
+      method: 'DELETE',
+    })
   },
 
   // Import

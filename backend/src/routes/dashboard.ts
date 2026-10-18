@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../db.js'
+import { getTodayIST, parseDateToMidnightUTC } from '../../../lib/date.js'
 
 export const dashboardRouter = Router()
 
@@ -9,7 +10,10 @@ dashboardRouter.get('/', async (_req: Request, res: Response) => {
     const oneWeekAgo = new Date()
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
-    const [total, newThisWeek, notCalled, allStatuses, allCategories, rawLeads] = await Promise.all([
+    const todayStr = getTodayIST()
+    const todayDate = parseDateToMidnightUTC(todayStr)
+
+    const [total, newThisWeek, notCalled, allStatuses, allCategories, rawLeads, contactedLogs] = await Promise.all([
       prisma.lead.count({
         where: { archivedAt: null },
       }),
@@ -32,7 +36,17 @@ dashboardRouter.get('/', async (_req: Request, res: Response) => {
         where: { archivedAt: null },
         _count: { id: true },
       }),
+      prisma.contactLog.findMany({
+        where: {
+          contactDate: todayDate,
+          lead: { archivedAt: null },
+        },
+        select: { leadId: true },
+        distinct: ['leadId'],
+      }),
     ])
+
+    const contactedToday = contactedLogs.length
 
     const byStatus = allStatuses.map((s) => ({
       id: s.id,
@@ -72,6 +86,7 @@ dashboardRouter.get('/', async (_req: Request, res: Response) => {
       total,
       newThisWeek,
       notCalled,
+      contactedToday,
       byStatus,
       byCategory,
       byPriority,

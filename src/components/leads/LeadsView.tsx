@@ -6,6 +6,8 @@ import { useToast } from '../../context/ToastContext'
 import { Lead } from '../../types'
 import { AddLeadModal } from './AddLeadModal'
 import { ImportWizardDialog } from './ImportWizardDialog'
+import { RecordContactDialog } from './RecordContactDialog'
+import { formatDateShort } from '../../../lib/date'
 import {
   Search,
   Plus,
@@ -15,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  ChevronDown,
+  PhoneCall,
 } from 'lucide-react'
 
 export const LeadsView: React.FC = () => {
@@ -45,6 +47,7 @@ export const LeadsView: React.FC = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [recordTargetLead, setRecordTargetLead] = useState<Lead | null>(null)
 
   // Fetch Statuses & Categories
   const { data: statuses = [] } = useQuery({
@@ -80,10 +83,11 @@ export const LeadsView: React.FC = () => {
       }),
   })
 
-  // Optimistic update for inline lead changes (status, category, remarks)
-  const updateLeadMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Lead> }) => api.updateLead(id, data),
-    onMutate: async ({ id, data }) => {
+  // Mutation for category inline change
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, categoryId }: { id: number; categoryId: number | null }) =>
+      api.updateLead(id, { categoryId }),
+    onMutate: async ({ id, categoryId }) => {
       await queryClient.cancelQueries({ queryKey: ['leads'] })
       const queryKey = ['leads', queryFilters]
       const previous = queryClient.getQueryData(queryKey)
@@ -94,18 +98,13 @@ export const LeadsView: React.FC = () => {
           ...old,
           items: old.items.map((lead: Lead) => {
             if (lead.id === id) {
-              const updatedStatus =
-                data.statusId !== undefined
-                  ? statuses.find((s) => s.id === data.statusId) || null
-                  : lead.status
               const updatedCategory =
-                data.categoryId !== undefined
-                  ? categories.find((c) => c.id === data.categoryId) || null
+                categoryId !== undefined
+                  ? categories.find((c) => c.id === categoryId) || null
                   : lead.category
               return {
                 ...lead,
-                ...data,
-                status: updatedStatus,
+                categoryId,
                 category: updatedCategory,
               }
             }
@@ -120,40 +119,23 @@ export const LeadsView: React.FC = () => {
       if (context?.previous) {
         queryClient.setQueryData(context.queryKey, context.previous)
       }
-      toastError(err.message || 'Failed to update lead')
+      toastError(err.message || 'Failed to update category')
     },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['statuses'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       if (updated?.id) {
         queryClient.setQueryData(['lead', updated.id], updated)
       }
-      success('Saved')
+      success('Category updated')
     },
   })
 
-  const handleStatusChange = (leadId: number, newStatusId: number | null) => {
-    updateLeadMutation.mutate({
-      id: leadId,
-      data: { statusId: newStatusId },
-    })
-  }
-
   const handleCategoryChange = (leadId: number, newCategoryId: number | null) => {
-    updateLeadMutation.mutate({
+    updateCategoryMutation.mutate({
       id: leadId,
-      data: { categoryId: newCategoryId },
+      categoryId: newCategoryId,
     })
-  }
-
-  const handleRemarksBlur = (leadId: number, original: string | null, current: string) => {
-    if ((original || '').trim() !== current.trim()) {
-      updateLeadMutation.mutate({
-        id: leadId,
-        data: { remarks: current.trim() || null },
-      })
-    }
   }
 
   const handleExportCsv = () => {
@@ -352,43 +334,51 @@ export const LeadsView: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Desktop Table (>= 768px): fixed 6 columns, no horizontal scroll at >= 1280px */}
+            {/* Desktop Table (>= 768px): fixed 8 columns, no horizontal scroll at >= 1280px */}
             <div className="hidden md:block w-full">
               <table className="w-full table-fixed divide-y divide-slate-200 text-xs">
                 <colgroup>
-                  <col className="w-[26%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[20%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[7%]" />
                   <col className="w-[8%]" />
+                  <col className="w-[7%]" />
                 </colgroup>
                 <thead className="bg-slate-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
                       Title
                     </th>
-                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
                       Phone
                     </th>
-                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
                       Category
                     </th>
-                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                      Remarks
+                      Latest note
                     </th>
-                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-2 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
                       Priority
+                    </th>
+                    <th className="px-2 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Last contact
+                    </th>
+                    <th className="px-2 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Record
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {leads.map((lead) => {
                     const currentStatus = lead.status
-                    const statusBg = currentStatus ? currentStatus.color : '#94A3B8'
+                    const statusColor = currentStatus?.color || '#64748B'
 
                     return (
                       <tr
@@ -403,14 +393,14 @@ export const LeadsView: React.FC = () => {
                         }}
                         className="hover:bg-blue-50/40 focus:bg-blue-50/50 cursor-pointer transition-colors outline-none"
                       >
-                        {/* 1. Title: single line with ellipsis, full text on hover */}
-                        <td className="px-4 py-2.5 font-semibold text-slate-900 truncate" title={lead.title}>
+                        {/* 1. Title (24%): single line with ellipsis, full text on hover */}
+                        <td className="px-3.5 py-2.5 font-semibold text-slate-900 truncate" title={lead.title}>
                           <span className="truncate block">{lead.title}</span>
                         </td>
 
-                        {/* 2. Phone: does NOT trigger row click */}
+                        {/* 2. Phone (11%): does NOT trigger row click */}
                         <td
-                          className="px-3 py-2.5 whitespace-nowrap text-slate-600 font-mono truncate"
+                          className="px-2.5 py-2.5 whitespace-nowrap text-slate-600 font-mono truncate"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {lead.phone ? (
@@ -427,9 +417,9 @@ export const LeadsView: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 3. Category: compact select, does NOT trigger row click */}
+                        {/* 3. Category (9%): compact select, does NOT trigger row click */}
                         <td
-                          className="px-3 py-2.5 whitespace-nowrap"
+                          className="px-2.5 py-2.5 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <select
@@ -438,7 +428,7 @@ export const LeadsView: React.FC = () => {
                               const val = e.target.value ? Number(e.target.value) : null
                               handleCategoryChange(lead.id, val)
                             }}
-                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
+                            className="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
                           >
                             <option value="">Unassigned</option>
                             {categories.map((c) => (
@@ -449,66 +439,44 @@ export const LeadsView: React.FC = () => {
                           </select>
                         </td>
 
-                        {/* 4. Status: compact pill dropdown, does NOT trigger row click */}
-                        <td
-                          className="px-3 py-2.5 whitespace-nowrap"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="relative inline-block w-full">
-                            <select
-                              value={lead.statusId || ''}
-                              onChange={(e) => {
-                                const val = e.target.value ? Number(e.target.value) : null
-                                handleStatusChange(lead.id, val)
-                              }}
+                        {/* 4. Status (12%): plain colored pill, no dropdown; 'Not called' in grey when empty */}
+                        <td className="px-2.5 py-2.5 whitespace-nowrap">
+                          {currentStatus ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border truncate max-w-full"
                               style={{
-                                backgroundColor: `${statusBg}15`,
-                                borderColor: `${statusBg}40`,
-                                color: statusBg,
+                                backgroundColor: `${statusColor}15`,
+                                borderColor: `${statusColor}40`,
+                                color: statusColor,
                               }}
-                              className="w-full appearance-none font-semibold text-xs rounded-full pl-2.5 pr-6 py-0.5 border truncate transition-colors cursor-pointer focus:outline-none focus:ring-1"
+                              title={currentStatus.name}
                             >
-                              <option value="" className="text-slate-700 bg-white">
-                                Not called
-                              </option>
-                              {statuses.map((s) => (
-                                <option key={s.id} value={s.id} className="text-slate-700 bg-white">
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown
-                              className="w-3 h-3 absolute right-2 top-1.5 pointer-events-none"
-                              style={{ color: statusBg }}
-                            />
-                          </div>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full shrink-0"
+                                style={{ backgroundColor: statusColor }}
+                              />
+                              <span className="truncate">{currentStatus.name}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                              <span>Not called</span>
+                            </span>
+                          )}
                         </td>
 
-                        {/* 5. Remarks: single line with ellipsis, editable, does NOT trigger row click */}
-                        <td
-                          className="px-3 py-2.5 truncate"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="text"
-                            defaultValue={lead.remarks || ''}
-                            title={lead.remarks || ''}
-                            placeholder="Click to add remarks..."
-                            onBlur={(e) => handleRemarksBlur(lead.id, lead.remarks, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                (e.target as HTMLInputElement).blur()
-                              }
-                            }}
-                            className="w-full px-2 py-1 text-xs text-slate-700 bg-transparent hover:bg-slate-50 focus:bg-white border border-transparent hover:border-slate-300 focus:border-blue-500 rounded truncate transition-colors"
-                          />
+                        {/* 5. Latest note (22%): single line with ellipsis, full text on hover */}
+                        <td className="px-3 py-2.5 truncate" title={lead.latestNote || ''}>
+                          <span className="truncate block text-slate-600 text-xs">
+                            {lead.latestNote || <span className="text-slate-400">—</span>}
+                          </span>
                         </td>
 
-                        {/* 6. Priority */}
-                        <td className="px-3 py-2.5 whitespace-nowrap">
+                        {/* 6. Priority (7%): badge */}
+                        <td className="px-2 py-2.5 whitespace-nowrap">
                           {lead.priority ? (
                             <span
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
                                 lead.priority.toLowerCase() === 'high'
                                   ? 'bg-rose-50 text-rose-700 border-rose-200'
                                   : lead.priority.toLowerCase() === 'medium'
@@ -522,6 +490,29 @@ export const LeadsView: React.FC = () => {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
+
+                        {/* 7. Last contact (8%): e.g. "18 Oct", or "-" if none */}
+                        <td className="px-2 py-2.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                          {formatDateShort(lead.lastContactDate)}
+                        </td>
+
+                        {/* 8. Record (7%): small compact button on active leads only; does NOT trigger row click */}
+                        <td
+                          className="px-2 py-2.5 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {!lead.archivedAt ? (
+                            <button
+                              type="button"
+                              onClick={() => setRecordTargetLead(lead)}
+                              className="inline-flex items-center gap-1 px-2 py-1 h-[30px] text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs shrink-0"
+                              title={`Record contact for ${lead.title}`}
+                            >
+                              <PhoneCall className="w-3 h-3 text-blue-600 shrink-0" />
+                              <span>Record</span>
+                            </button>
+                          ) : null}
+                        </td>
                       </tr>
                     )
                   })}
@@ -529,11 +520,11 @@ export const LeadsView: React.FC = () => {
               </table>
             </div>
 
-            {/* Mobile Cards (< 768px): title, phone, status, category, remarks, priority */}
+            {/* Mobile Cards (< 768px): title, phone, status, category, latest note, priority, last contact, with Record button at bottom */}
             <div className="md:hidden divide-y divide-slate-200">
               {leads.map((lead) => {
                 const currentStatus = lead.status
-                const statusBg = currentStatus ? currentStatus.color : '#94A3B8'
+                const statusColor = currentStatus?.color || '#64748B'
 
                 return (
                   <div
@@ -568,62 +559,55 @@ export const LeadsView: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Phone */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      {lead.phone ? (
-                        <a
-                          href={`tel:${lead.phone}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-blue-600 hover:text-blue-800"
-                        >
-                          <Phone className="w-3.5 h-3.5 text-blue-500" />
-                          <span>{lead.phone}</span>
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-400">No phone</span>
-                      )}
-                    </div>
-
-                    {/* Category & Status Dropdowns */}
-                    <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
-                      {/* Status */}
-                      <div className="relative">
-                        <select
-                          value={lead.statusId || ''}
-                          onChange={(e) => {
-                            const val = e.target.value ? Number(e.target.value) : null
-                            handleStatusChange(lead.id, val)
-                          }}
-                          style={{
-                            backgroundColor: `${statusBg}15`,
-                            borderColor: `${statusBg}40`,
-                            color: statusBg,
-                          }}
-                          className="w-full appearance-none font-semibold text-xs rounded-full pl-2.5 pr-6 py-1 border truncate cursor-pointer focus:outline-none focus:ring-1"
-                        >
-                          <option value="" className="text-slate-700 bg-white">
-                            Not called
-                          </option>
-                          {statuses.map((s) => (
-                            <option key={s.id} value={s.id} className="text-slate-700 bg-white">
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown
-                          className="w-3 h-3 absolute right-2.5 top-2 pointer-events-none"
-                          style={{ color: statusBg }}
-                        />
+                    {/* Phone and Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        {lead.phone ? (
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-blue-600 hover:text-blue-800"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-blue-500" />
+                            <span>{lead.phone}</span>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-400">No phone</span>
+                        )}
                       </div>
 
-                      {/* Category */}
+                      {/* Status pill (read only) */}
                       <div>
+                        {currentStatus ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                            style={{
+                              backgroundColor: `${statusColor}15`,
+                              borderColor: `${statusColor}40`,
+                              color: statusColor,
+                            }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
+                            <span>{currentStatus.name}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            <span>Not called</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Category and Last contact */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div onClick={(e) => e.stopPropagation()}>
                         <select
                           value={lead.categoryId || ''}
                           onChange={(e) => {
                             const val = e.target.value ? Number(e.target.value) : null
                             handleCategoryChange(lead.id, val)
                           }}
-                          className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
+                          className="px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
                         >
                           <option value="">Unassigned</option>
                           {categories.map((c) => (
@@ -633,24 +617,32 @@ export const LeadsView: React.FC = () => {
                           ))}
                         </select>
                       </div>
+
+                      <div className="text-xs text-slate-500 font-mono">
+                        Last: {formatDateShort(lead.lastContactDate)}
+                      </div>
                     </div>
 
-                    {/* Remarks */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="text"
-                        defaultValue={lead.remarks || ''}
-                        title={lead.remarks || ''}
-                        placeholder="Add remarks..."
-                        onBlur={(e) => handleRemarksBlur(lead.id, lead.remarks, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            (e.target as HTMLInputElement).blur()
-                          }
-                        }}
-                        className="w-full px-2.5 py-1 text-xs text-slate-700 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded truncate transition-colors"
-                      />
-                    </div>
+                    {/* Latest note */}
+                    {lead.latestNote && (
+                      <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 truncate" title={lead.latestNote}>
+                        <span className="font-semibold text-slate-700">Note:</span> {lead.latestNote}
+                      </p>
+                    )}
+
+                    {/* Record button at bottom (for active leads) */}
+                    {!lead.archivedAt && (
+                      <div className="pt-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => setRecordTargetLead(lead)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Record Contact</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -706,6 +698,21 @@ export const LeadsView: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         }}
       />
+
+      {/* Record Contact Dialog */}
+      {recordTargetLead && (
+        <RecordContactDialog
+          isOpen={true}
+          onClose={() => setRecordTargetLead(null)}
+          leadId={recordTargetLead.id}
+          leadTitle={recordTargetLead.title}
+          statuses={statuses}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -38,11 +38,26 @@ export interface Lead {
   categoryId: number | null
   batchId: number | null
   archivedAt: string | null
+  latestNote?: string | null
+  lastContactDate?: string | null
+  contactLogs?: ContactLog[]
   createdAt: string
   updatedAt: string
   status?: LeadStatus | null
   category?: LeadCategory | null
   batch?: { id: number; fileName: string; createdAt: string } | null
+}
+
+export interface ContactLog {
+  id: number
+  leadId: number
+  contactDate: string
+  statusId: number
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+  status?: LeadStatus | null
+  lead?: Lead | null
 }
 
 export interface LeadsResponse {
@@ -56,6 +71,7 @@ export interface DashboardStats {
   total: number
   newThisWeek: number
   notCalled: number
+  contactedToday: number
   byStatus: { id: number; name: string; color: string; count: number }[]
   byCategory: { id: number; name: string; count: number }[]
   byPriority: { priority: string; count: number }[]

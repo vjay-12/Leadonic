@@ -6,6 +6,7 @@ import { prisma } from './db.js'
 import { authRouter } from './routes/auth.js'
 import { statusesRouter } from './routes/statuses.js'
 import { categoriesRouter } from './routes/categories.js'
+import { contactsRouter } from './routes/contacts.js'
 import { leadsRouter } from './routes/leads.js'
 import { importRouter } from './routes/import.js'
 import { dashboardRouter } from './routes/dashboard.js'
@@ -42,6 +43,7 @@ app.get('/api/health', async (_req, res) => {
 // Protected API routes
 app.use('/api/lead-statuses', requireAuth, statusesRouter)
 app.use('/api/lead-categories', requireAuth, categoriesRouter)
+app.use('/api/contacts', requireAuth, contactsRouter)
 app.use('/api/leads/import', requireAuth, importRouter)
 app.use('/api/leads', requireAuth, leadsRouter)
 app.use('/api/dashboard', requireAuth, dashboardRouter)

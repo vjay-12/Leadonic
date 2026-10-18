@@ -93,6 +93,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
         priorityScore: row['priorityScore'] != null ? parseNum(row['priorityScore']) : null,
         priority: row['priority'] != null ? String(row['priority']).trim() : null,
         remarks: row['remarks'] != null ? String(row['remarks']).trim() : null,
+        statusId: null,
         categoryId,
       })
     })

@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../db.js'
 import { normalizePhone, makeDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
+import { isFutureDateIST, parseDateToMidnightUTC, formatDateShort } from '../../../lib/date.js'
+import { syncLeadStatus } from './contacts.js'
 
 export const leadsRouter = Router()
 
@@ -86,12 +88,23 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
       where.archivedAt = null
     }
 
-    const [items, total] = await Promise.all([
+    const [leads, total] = await Promise.all([
       prisma.lead.findMany({
         where,
         include: {
           status: true,
           category: true,
+          contactLogs: {
+            take: 1,
+            orderBy: [
+              { contactDate: 'desc' },
+              { createdAt: 'desc' },
+            ],
+            select: {
+              notes: true,
+              contactDate: true,
+            },
+          },
         },
         orderBy,
         skip: (page - 1) * pageSize,
@@ -99,6 +112,13 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
       }),
       prisma.lead.count({ where }),
     ])
+
+    const items = leads.map((l) => ({
+      ...l,
+      latestNote: l.contactLogs[0]?.notes ?? null,
+      lastContactDate: l.contactLogs[0]?.contactDate ?? null,
+      contactLogs: undefined,
+    }))
 
     return res.json({
       items,
@@ -162,6 +182,17 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
       include: {
         status: true,
         category: true,
+        contactLogs: {
+          take: 1,
+          orderBy: [
+            { contactDate: 'desc' },
+            { createdAt: 'desc' },
+          ],
+          select: {
+            notes: true,
+            contactDate: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -172,7 +203,8 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
       'Normalized Phone',
       'Category',
       'Status',
-      'Remarks',
+      'Latest Note',
+      'Last Contact Date',
       'Priority',
       'Priority Score',
       'Review Rating',
@@ -193,7 +225,8 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
       l.phoneNormalized || '',
       l.category?.name || '',
       l.status?.name || 'Not called',
-      l.remarks || '',
+      l.contactLogs[0]?.notes || '',
+      l.contactLogs[0]?.contactDate ? formatDateShort(l.contactLogs[0].contactDate) : '',
       l.priority || '',
       l.priorityScore != null ? String(l.priorityScore) : '',
       l.reviewRating != null ? String(l.reviewRating) : '',
@@ -230,6 +263,7 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
 })
 
 // POST /api/leads
+// New leads start with no status (statusId: null)
 leadsRouter.post('/', async (req: Request, res: Response) => {
   const parsed = CreateLeadSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -271,7 +305,7 @@ leadsRouter.post('/', async (req: Request, res: Response) => {
         priorityScore: data.priorityScore != null ? parseNum(data.priorityScore) : null,
         priority: data.priority || null,
         remarks: data.remarks || null,
-        statusId: data.statusId || null,
+        statusId: null, // New leads start with no status
         categoryId: data.categoryId || null,
       },
       include: {
@@ -288,6 +322,7 @@ leadsRouter.post('/', async (req: Request, res: Response) => {
 })
 
 // PATCH /api/leads/:id
+// Status is read-only everywhere; statusId is ignored
 leadsRouter.patch('/:id', async (req: Request, res: Response) => {
   const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
@@ -323,7 +358,7 @@ leadsRouter.patch('/:id', async (req: Request, res: Response) => {
     if (data.priorityScore !== undefined) updateData.priorityScore = data.priorityScore != null ? parseNum(data.priorityScore) : null
     if (data.priority !== undefined) updateData.priority = data.priority || null
     if (data.remarks !== undefined) updateData.remarks = data.remarks || null
-    if (data.statusId !== undefined) updateData.statusId = data.statusId || null
+    // statusId is strictly ignored here: status changes only through contact logs
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId || null
 
     // If title, phone, or address changed, recompute dedupe fields
@@ -378,6 +413,15 @@ leadsRouter.get('/:id', async (req: Request, res: Response) => {
         status: true,
         category: true,
         batch: true,
+        contactLogs: {
+          orderBy: [
+            { contactDate: 'desc' },
+            { createdAt: 'desc' },
+          ],
+          include: {
+            status: true,
+          },
+        },
       },
     })
     if (!lead) {
@@ -387,6 +431,98 @@ leadsRouter.get('/:id', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('Error fetching lead:', err)
     return res.status(500).json({ error: 'Failed to fetch lead' })
+  }
+})
+
+// GET /api/leads/:id/contacts
+// Returns all contact logs for the lead (newest first)
+leadsRouter.get('/:id/contacts', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  try {
+    const lead = await prisma.lead.findUnique({ where: { id } })
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    const contacts = await prisma.contactLog.findMany({
+      where: { leadId: id },
+      orderBy: [
+        { contactDate: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      include: {
+        status: true,
+      },
+    })
+
+    return res.json(contacts)
+  } catch (err: any) {
+    console.error('Error fetching contacts for lead:', err)
+    return res.status(500).json({ error: 'Failed to fetch contact logs' })
+  }
+})
+
+const CreateContactSchema = z.object({
+  contactDate: z.string().min(1, 'Contact date is required'),
+  statusId: z.number().int().positive('Status is required'),
+  notes: z.string().max(1000, 'Notes cannot exceed 1000 characters').nullable().optional(),
+})
+
+// POST /api/leads/:id/contacts
+// Rejects future dates and archived leads
+leadsRouter.post('/:id/contacts', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  const parsed = CreateContactSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid input' })
+  }
+
+  const { contactDate, statusId, notes } = parsed.data
+
+  if (isFutureDateIST(contactDate)) {
+    return res.status(400).json({ error: 'Contact date cannot be in the future' })
+  }
+
+  try {
+    const lead = await prisma.lead.findUnique({ where: { id } })
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    if (lead.archivedAt) {
+      return res.status(400).json({ error: 'Cannot record contact for an archived lead' })
+    }
+
+    const statusExists = await prisma.leadStatus.findUnique({ where: { id: statusId } })
+    if (!statusExists) {
+      return res.status(400).json({ error: 'Selected status does not exist' })
+    }
+
+    const created = await prisma.$transaction(async (tx) => {
+      const log = await tx.contactLog.create({
+        data: {
+          leadId: id,
+          contactDate: parseDateToMidnightUTC(contactDate),
+          statusId,
+          notes: notes?.trim() || null,
+        },
+        include: {
+          status: true,
+        },
+      })
+
+      await syncLeadStatus(tx, id)
+      return log
+    })
+
+    return res.status(201).json(created)
+  } catch (err: any) {
+    console.error('Error recording contact:', err)
+    return res.status(500).json({ error: 'Failed to record contact' })
   }
 })
 
@@ -468,4 +604,3 @@ leadsRouter.delete('/:id', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to delete lead' })
   }
 })
-

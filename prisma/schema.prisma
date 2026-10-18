@@ -13,8 +13,9 @@ model LeadStatus {
   name      String   @unique
   color     String   @default("#64748B")
   sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime     @default(now()) @map("created_at")
   leads     Lead[]
+  contactLogs ContactLog[]
 
   @@map("lead_statuses")
 }
@@ -70,6 +71,7 @@ model Lead {
   batchId         Int?          @map("batch_id")
   batch           ImportBatch?  @relation(fields: [batchId], references: [id])
   archivedAt      DateTime?     @map("archived_at")
+  contactLogs     ContactLog[]
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
@@ -78,4 +80,19 @@ model Lead {
   @@index([priority])
   @@index([archivedAt])
   @@map("leads")
+}
+
+model ContactLog {
+  id          Int          @id @default(autoincrement())
+  leadId      Int          @map("lead_id")
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactDate DateTime     @map("contact_date") @db.Date
+  statusId    Int          @map("status_id")
+  status      LeadStatus   @relation(fields: [statusId], references: [id])
+  notes       String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([leadId, contactDate])
+  @@map("contact_logs")
 }
