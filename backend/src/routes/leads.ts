@@ -30,13 +30,13 @@ const UpdateLeadSchema = CreateLeadSchema.partial()
 // GET /api/leads
 leadsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
-    const statusIdParam = typeof req.query.statusId === 'string' ? req.query.statusId : ''
-    const categoryIdParam = typeof req.query.categoryId === 'string' ? req.query.categoryId : ''
-    const priorityParam = typeof req.query.priority === 'string' ? req.query.priority : ''
-    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1)
-    const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string, 10) || 50))
-    const sortParam = typeof req.query.sort === 'string' ? req.query.sort : 'createdAt:desc'
+    const search = typeof req.query['search'] === 'string' ? req.query['search'].trim() : ''
+    const statusIdParam = typeof req.query['statusId'] === 'string' ? req.query['statusId'] : ''
+    const categoryIdParam = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : ''
+    const priorityParam = typeof req.query['priority'] === 'string' ? req.query['priority'] : ''
+    const page = Math.max(1, parseInt(req.query['page'] as string, 10) || 1)
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query['pageSize'] as string, 10) || 50))
+    const sortParam = typeof req.query['sort'] === 'string' ? req.query['sort'] : 'createdAt:desc'
 
     const [sortField, sortOrder] = sortParam.split(':')
     const validSortFields: Record<string, string> = {
@@ -46,7 +46,7 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
       priorityScore: 'priorityScore',
     }
     const orderBy: any = {}
-    const field = validSortFields[sortField] || 'createdAt'
+    const field = sortField && validSortFields[sortField] ? validSortFields[sortField] : 'createdAt'
     orderBy[field] = sortOrder === 'asc' ? 'asc' : 'desc'
 
     const where: any = {}
@@ -108,10 +108,10 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
 // GET /api/leads/export.csv
 leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
   try {
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
-    const statusIdParam = typeof req.query.statusId === 'string' ? req.query.statusId : ''
-    const categoryIdParam = typeof req.query.categoryId === 'string' ? req.query.categoryId : ''
-    const priorityParam = typeof req.query.priority === 'string' ? req.query.priority : ''
+    const search = typeof req.query['search'] === 'string' ? req.query['search'].trim() : ''
+    const statusIdParam = typeof req.query['statusId'] === 'string' ? req.query['statusId'] : ''
+    const categoryIdParam = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : ''
+    const priorityParam = typeof req.query['priority'] === 'string' ? req.query['priority'] : ''
 
     const where: any = {}
 
@@ -275,7 +275,7 @@ leadsRouter.post('/', async (req: Request, res: Response) => {
 
 // PATCH /api/leads/:id
 leadsRouter.patch('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id as string, 10)
+  const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   const parsed = UpdateLeadSchema.safeParse(req.body)
@@ -353,7 +353,7 @@ leadsRouter.patch('/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/leads/:id
 leadsRouter.delete('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id as string, 10)
+  const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   try {

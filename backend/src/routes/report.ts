@@ -36,7 +36,7 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
   const [statuses, categories, leads] = await Promise.all([
     prisma.leadStatus.findMany({ orderBy: { sortOrder: 'asc' } }),
     prisma.leadCategory.findMany({
-      where: categoryIdParam ? { id: parseInt(categoryIdParam, 10) } : undefined,
+      where: categoryIdParam ? { id: parseInt(categoryIdParam, 10) } : {},
       orderBy: { sortOrder: 'asc' },
     }),
     prisma.lead.findMany({
@@ -59,9 +59,9 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
     const catLeads = leads.filter((l) => l.categoryId === cat.id)
     for (const lead of catLeads) {
       if (lead.statusId == null) {
-        counts.not_called++
+        counts['not_called'] = (counts['not_called'] ?? 0) + 1
       } else if (counts[String(lead.statusId)] !== undefined) {
-        counts[String(lead.statusId)]++
+        counts[String(lead.statusId)] = (counts[String(lead.statusId)] ?? 0) + 1
       }
     }
 
@@ -82,9 +82,9 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
     }
     for (const lead of uncategorizedLeads) {
       if (lead.statusId == null) {
-        counts.not_called++
+        counts['not_called'] = (counts['not_called'] ?? 0) + 1
       } else if (counts[String(lead.statusId)] !== undefined) {
-        counts[String(lead.statusId)]++
+        counts[String(lead.statusId)] = (counts[String(lead.statusId)] ?? 0) + 1
       }
     }
     rows.push({
@@ -101,9 +101,9 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
     totalCounts[String(s.id)] = 0
   }
   for (const r of rows) {
-    totalCounts.not_called += r.counts.not_called
+    totalCounts['not_called'] = (totalCounts['not_called'] ?? 0) + (r.counts['not_called'] ?? 0)
     for (const s of statuses) {
-      totalCounts[String(s.id)] += r.counts[String(s.id)] || 0
+      totalCounts[String(s.id)] = (totalCounts[String(s.id)] ?? 0) + (r.counts[String(s.id)] ?? 0)
     }
   }
 
@@ -118,9 +118,9 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
 // GET /api/report
 reportRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const categoryId = typeof req.query.categoryId === 'string' ? req.query.categoryId : undefined
-    const from = typeof req.query.from === 'string' ? req.query.from : undefined
-    const to = typeof req.query.to === 'string' ? req.query.to : undefined
+    const categoryId = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : undefined
+    const from = typeof req.query['from'] === 'string' ? req.query['from'] : undefined
+    const to = typeof req.query['to'] === 'string' ? req.query['to'] : undefined
 
     const report = await generateReportData(categoryId, from, to)
     return res.json(report)
@@ -133,9 +133,9 @@ reportRouter.get('/', async (req: Request, res: Response) => {
 // GET /api/report.csv
 reportRouter.get('/csv', async (req: Request, res: Response) => {
   try {
-    const categoryId = typeof req.query.categoryId === 'string' ? req.query.categoryId : undefined
-    const from = typeof req.query.from === 'string' ? req.query.from : undefined
-    const to = typeof req.query.to === 'string' ? req.query.to : undefined
+    const categoryId = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : undefined
+    const from = typeof req.query['from'] === 'string' ? req.query['from'] : undefined
+    const to = typeof req.query['to'] === 'string' ? req.query['to'] : undefined
 
     const report = await generateReportData(categoryId, from, to)
 
@@ -144,7 +144,7 @@ reportRouter.get('/csv', async (req: Request, res: Response) => {
     const rows = report.rows.map((row) => [
       row.categoryName,
       ...report.statuses.map((s) => String(row.counts[String(s.id)] || 0)),
-      String(row.counts.not_called || 0),
+      String(row.counts['not_called'] || 0),
       String(row.total),
     ])
 
@@ -152,7 +152,7 @@ reportRouter.get('/csv', async (req: Request, res: Response) => {
     rows.push([
       'Total',
       ...report.statuses.map((s) => String(report.totalCounts[String(s.id)] || 0)),
-      String(report.totalCounts.not_called || 0),
+      String(report.totalCounts['not_called'] || 0),
       String(report.grandTotal),
     ])
 

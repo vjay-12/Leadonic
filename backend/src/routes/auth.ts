@@ -14,7 +14,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
     return res.status(400).json({ error: result.error.errors[0]?.message || 'Invalid request' })
   }
 
-  const expectedPassword = process.env.APP_PASSWORD
+  const expectedPassword = process.env['APP_PASSWORD']
   if (!expectedPassword) {
     console.error('APP_PASSWORD is not set in environment')
     return res.status(500).json({ error: 'Server configuration error' })

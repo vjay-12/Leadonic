@@ -112,7 +112,7 @@ statusesRouter.put('/reorder', async (req: Request, res: Response) => {
 
 // PATCH /api/lead-statuses/:id
 statusesRouter.patch('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id as string, 10)
+  const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   const parsed = UpdateStatusSchema.safeParse(req.body)
@@ -162,7 +162,7 @@ statusesRouter.patch('/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/lead-statuses/:id
 statusesRouter.delete('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id as string, 10)
+  const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   try {

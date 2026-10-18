@@ -150,7 +150,9 @@ export const SettingsView: React.FC = () => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1
     if (targetIndex < 0 || targetIndex >= statuses.length) return
     const newItems = [...statuses]
-    const [moved] = newItems.splice(index, 1)
+    const moved = newItems[index]
+    if (!moved) return
+    newItems.splice(index, 1)
     newItems.splice(targetIndex, 0, moved)
     reorderStatusesMutation.mutate(newItems.map((s) => s.id))
   }
@@ -160,7 +162,9 @@ export const SettingsView: React.FC = () => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1
     if (targetIndex < 0 || targetIndex >= categories.length) return
     const newItems = [...categories]
-    const [moved] = newItems.splice(index, 1)
+    const moved = newItems[index]
+    if (!moved) return
+    newItems.splice(index, 1)
     newItems.splice(targetIndex, 0, moved)
     reorderCategoriesMutation.mutate(newItems.map((c) => c.id))
   }

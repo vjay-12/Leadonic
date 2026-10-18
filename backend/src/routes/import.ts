@@ -56,14 +56,14 @@ importRouter.post('/', async (req: Request, res: Response) => {
 
     rows.forEach((row, idx) => {
       const rowNum = idx + 1
-      const title = (row.title || row.name || '').toString().trim()
+      const title = (row['title'] || row['name'] || '').toString().trim()
       if (!title) {
         errors.push({ row: rowNum, reason: 'Missing title / name' })
         return
       }
 
-      const phoneRaw = row.phone != null ? String(row.phone).trim() : null
-      const address = row.address != null ? String(row.address).trim() : null
+      const phoneRaw = row['phone'] != null ? String(row['phone']).trim() : null
+      const address = row['address'] != null ? String(row['address']).trim() : null
       const phoneNormalized = normalizePhone(phoneRaw)
       const dedupeKey = makeDedupeKey(title, address, phoneNormalized)
 
@@ -80,19 +80,19 @@ importRouter.post('/', async (req: Request, res: Response) => {
         phone: phoneRaw,
         phoneNormalized,
         dedupeKey,
-        emails: row.emails != null ? String(row.emails).trim() : null,
-        website: row.website != null ? String(row.website).trim() : null,
-        mapsCategory: row.mapsCategory != null ? String(row.mapsCategory).trim() : null,
+        emails: row['emails'] != null ? String(row['emails']).trim() : null,
+        website: row['website'] != null ? String(row['website']).trim() : null,
+        mapsCategory: row['mapsCategory'] != null ? String(row['mapsCategory']).trim() : null,
         address,
-        reviewRating: row.reviewRating != null ? parseNum(row.reviewRating) : null,
-        reviewCount: row.reviewCount != null ? Math.round(parseNum(row.reviewCount) || 0) : null,
-        hasWebsite: row.hasWebsite != null ? parseBool(row.hasWebsite) : null,
-        needsWebsite: row.needsWebsite != null ? parseBool(row.needsWebsite) : null,
-        erpMatch: row.erpMatch != null ? String(row.erpMatch).trim() : null,
-        needsErp: row.needsErp != null ? parseBool(row.needsErp) : null,
-        priorityScore: row.priorityScore != null ? parseNum(row.priorityScore) : null,
-        priority: row.priority != null ? String(row.priority).trim() : null,
-        remarks: row.remarks != null ? String(row.remarks).trim() : null,
+        reviewRating: row['reviewRating'] != null ? parseNum(row['reviewRating']) : null,
+        reviewCount: row['reviewCount'] != null ? Math.round(parseNum(row['reviewCount']) || 0) : null,
+        hasWebsite: row['hasWebsite'] != null ? parseBool(row['hasWebsite']) : null,
+        needsWebsite: row['needsWebsite'] != null ? parseBool(row['needsWebsite']) : null,
+        erpMatch: row['erpMatch'] != null ? String(row['erpMatch']).trim() : null,
+        needsErp: row['needsErp'] != null ? parseBool(row['needsErp']) : null,
+        priorityScore: row['priorityScore'] != null ? parseNum(row['priorityScore']) : null,
+        priority: row['priority'] != null ? String(row['priority']).trim() : null,
+        remarks: row['remarks'] != null ? String(row['remarks']).trim() : null,
         categoryId,
       })
     })
@@ -154,7 +154,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
         priority: r.priority,
         remarks: r.remarks,
         categoryId,
-        batchId,
+        batchId: batchId ?? null,
       }))
 
       await prisma.lead.createMany({

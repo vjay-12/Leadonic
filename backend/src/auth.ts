@@ -5,7 +5,7 @@ const SESSION_COOKIE_NAME = 'leadonic_session'
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
 function getSecret(): string {
-  const secret = process.env.SESSION_SECRET || 'dev-secret-leadonic-change-in-prod-1234'
+  const secret = process.env['SESSION_SECRET'] || 'dev-secret-leadonic-change-in-prod-1234'
   return secret
 }
 
@@ -23,7 +23,9 @@ export function verifySessionToken(token: string | undefined): boolean {
   if (!token) return false
   const parts = token.split('.')
   if (parts.length !== 2) return false
-  const [data, sig] = parts
+  const data = parts[0]
+  const sig = parts[1]
+  if (!data || !sig) return false
   const expectedSig = crypto.createHmac('sha256', getSecret()).update(data).digest('base64url')
 
   try {
@@ -46,7 +48,7 @@ export function verifySessionToken(token: string | undefined): boolean {
 }
 
 export function setSessionCookie(res: Response, token: string) {
-  const isProd = process.env.NODE_ENV === 'production'
+  const isProd = process.env['NODE_ENV'] === 'production'
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProd,

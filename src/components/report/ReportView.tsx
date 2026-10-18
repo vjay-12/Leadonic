@@ -23,12 +23,13 @@ export const ReportView: React.FC = () => {
     refetch,
   } = useQuery({
     queryKey: ['report', { selectedCategory, fromDate, toDate }],
-    queryFn: () =>
-      api.getReport({
-        categoryId: selectedCategory || undefined,
-        from: fromDate || undefined,
-        to: toDate || undefined,
-      }),
+    queryFn: () => {
+      const params: { categoryId?: string; from?: string; to?: string } = {}
+      if (selectedCategory) params.categoryId = selectedCategory
+      if (fromDate) params.from = fromDate
+      if (toDate) params.to = toDate
+      return api.getReport(params)
+    },
   })
 
   const handleDownloadCsv = () => {
@@ -188,10 +189,10 @@ export const ReportView: React.FC = () => {
                     })}
                     <td
                       className={`px-4 py-3 text-center font-mono ${
-                        (row.counts.not_called || 0) > 0 ? 'text-slate-700 font-medium' : 'text-slate-300'
+                        (row.counts['not_called'] || 0) > 0 ? 'text-slate-700 font-medium' : 'text-slate-300'
                       }`}
                     >
-                      {row.counts.not_called || 0}
+                      {row.counts['not_called'] || 0}
                     </td>
                     <td className="px-4 py-3 text-center font-bold text-slate-900 font-mono bg-slate-50/50">
                       {row.total}
@@ -211,7 +212,7 @@ export const ReportView: React.FC = () => {
                     </td>
                   ))}
                   <td className="px-4 py-3 text-center font-mono text-sm text-slate-700">
-                    {report.totalCounts.not_called || 0}
+                    {report.totalCounts['not_called'] || 0}
                   </td>
                   <td className="px-4 py-3 text-center font-mono text-sm bg-blue-50 text-blue-900 font-extrabold">
                     {report.grandTotal}

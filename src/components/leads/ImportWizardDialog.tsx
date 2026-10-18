@@ -123,6 +123,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
       if (!firstSheet) throw new Error('File has no sheets')
 
       const ws = wb.Sheets[firstSheet]
+      if (!ws) throw new Error('Worksheet not found')
       const json: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' })
       if (json.length === 0) throw new Error('Spreadsheet contains no data rows')
 
