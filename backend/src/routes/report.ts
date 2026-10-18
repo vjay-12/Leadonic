@@ -3,10 +3,6 @@ import { prisma } from '../db'
 
 export const reportRouter = Router()
 
-interface MatrixCell {
-  [statusIdOrNotCalled: string]: number
-}
-
 interface MatrixRow {
   categoryId: number | null
   categoryName: string
