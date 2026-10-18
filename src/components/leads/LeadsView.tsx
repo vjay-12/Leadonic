@@ -495,7 +495,7 @@ export const LeadsView: React.FC = () => {
 
                       {/* Rating */}
                       <td className="px-3 py-2.5 whitespace-nowrap text-slate-600 font-mono">
-                        {lead.reviewRating != null ? `★ ${lead.reviewRating}` : '-'}
+                        {lead.reviewRating != null ? String(lead.reviewRating) : '-'}
                       </td>
 
                       {/* Website */}
