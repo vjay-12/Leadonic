@@ -332,8 +332,9 @@ export const SettingsView: React.FC = () => {
             >
               <input
                 type="text"
-                placeholder="Status name (e.g. Qualified)"
+                placeholder="Status name (max 24 chars, e.g. Qualified)"
                 value={newStatusName}
+                maxLength={24}
                 onChange={(e) => setNewStatusName(e.target.value)}
                 className="flex-1 min-w-[200px] px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 required
@@ -696,6 +697,7 @@ export const SettingsView: React.FC = () => {
                 <input
                   name="name"
                   defaultValue={editingStatus.name}
+                  maxLength={24}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />

@@ -50,6 +50,16 @@ export const RecordContactDialog: React.FC<RecordContactDialogProps> = ({
     }
   }, [isOpen, contactToEdit, statuses])
 
+  // Handle Escape key to close
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   const saveMutation = useMutation({
     mutationFn: (data: { contactDate: string; statusId: number; notes: string | null }) => {
       if (contactToEdit) {

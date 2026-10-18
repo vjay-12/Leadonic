@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { SchoolContact, SchoolMeeting } from '../../types'
-import { formatDateShort, formatDateTimeIST } from '../../../lib/date'
+import { formatDateMedium, formatDateTimeIST } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
+import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import {
   ArrowLeft,
-  Phone,
   MapPin,
   Users,
   Edit3,
@@ -26,6 +26,13 @@ import {
 } from 'lucide-react'
 
 const ROLE_SUGGESTIONS = ['Principal', 'Correspondent', 'Administrator', 'Accountant', 'Teacher', 'Other']
+
+function getInitials(name?: string): string {
+  if (!name) return 'S'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
 
 export const SchoolDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -75,6 +82,9 @@ export const SchoolDetailPage: React.FC = () => {
     queryFn: () => api.getSchoolStages(),
   })
 
+  // Synchronize status pill width across stage lists
+  useStatusPillWidth(stages)
+
   // Fetch School Data
   const {
     data: school,
@@ -87,6 +97,29 @@ export const SchoolDetailPage: React.FC = () => {
     queryFn: () => api.getSchool(schoolId),
     enabled: !isNaN(schoolId),
   })
+
+  // Escape key handler for all dialogs
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (contactToDelete) setContactToDelete(null)
+        else if (meetingToDelete) setMeetingToDelete(null)
+        else if (showArchiveConfirm) setShowArchiveConfirm(false)
+        else if (showDeleteConfirm) setShowDeleteConfirm(false)
+        else if (isContactModalOpen) setIsContactModalOpen(false)
+        else if (isEditModalOpen) setIsEditModalOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    contactToDelete,
+    meetingToDelete,
+    showArchiveConfirm,
+    showDeleteConfirm,
+    isContactModalOpen,
+    isEditModalOpen,
+  ])
 
   // Update School Mutation
   const updateSchoolMutation = useMutation({
@@ -211,12 +244,12 @@ export const SchoolDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-6xl mx-auto">
         <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
-        <div className="h-44 bg-white border border-slate-200 rounded-lg animate-pulse" />
+        <div className="h-44 bg-white border border-slate-200 rounded-xl animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 bg-white border border-slate-200 rounded-lg animate-pulse" />
-          <div className="h-64 bg-white border border-slate-200 rounded-lg animate-pulse" />
+          <div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
+          <div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
         </div>
       </div>
     )
@@ -250,9 +283,10 @@ export const SchoolDetailPage: React.FC = () => {
 
   const isArchived = Boolean(school.archivedAt)
   const currentStage = school.stage
-  const stageColor = currentStage?.color || '#64748B'
   const contacts = school.contacts || []
   const meetings = school.meetings || []
+  const primaryContact = contacts.find((c) => c.isPrimary) || contacts[0]
+  const lastMeeting = meetings[0]
 
   const openEditModal = () => {
     setEditName(school.name)
@@ -292,452 +326,491 @@ export const SchoolDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-3 pb-8">
-      {/* 1. Header Card (Compact Yaazhi Style) */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-        <div className="mb-2">
-          <Link
-            to="/school-erp"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to School ERP</span>
-          </Link>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-4 pb-8">
+      {/* 1. Top Action Toolbar Row (Outside & Above Header Card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <Link
+          to="/school-erp"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to School ERP</span>
+        </Link>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Title (~22px) and Badges on the same row */}
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-md bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-700 shrink-0">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <h1 className="text-[22px] font-bold text-slate-900 tracking-tight truncate max-w-full" title={school.name}>
-              {school.name}
-            </h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {school.lead && (
+            <Link
+              to={`/leads/${school.lead.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors shadow-2xs"
+            >
+              <span>Linked Lead #{school.lead.id}</span>
+              <ExternalLink className="w-3 h-3 text-blue-600" />
+            </Link>
+          )}
 
-            {/* Stage Pill */}
-            {currentStage ? (
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0"
-                style={{
-                  backgroundColor: `${stageColor}15`,
-                  borderColor: `${stageColor}40`,
-                  color: stageColor,
+          {!isArchived ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setMeetingToEdit(null)
+                  setIsRecordMeetingOpen(true)
                 }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-2xs"
               >
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stageColor }} />
-                <span>{currentStage.name}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
-                <span>Not started</span>
-              </span>
-            )}
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Record Meeting</span>
+              </button>
 
-            {/* Area Badge */}
-            {school.area && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 rounded-md text-xs font-medium shrink-0">
-                <MapPin className="w-3 h-3 text-slate-500" />
-                <span>{school.area}</span>
-              </span>
-            )}
-
-            {/* Quick Call Button (no monospace) */}
-            {school.phone && (
-              <a
-                href={`tel:${school.phone}`}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold hover:bg-emerald-100 transition-colors shrink-0"
-                title={`Call ${school.phone}`}
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
               >
-                <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                <span>{school.phone}</span>
-              </a>
-            )}
+                <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+                <span>Edit</span>
+              </button>
 
-            {/* Archived Badge */}
-            {isArchived && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-xs font-semibold shrink-0">
-                <Archive className="w-3 h-3 text-amber-600" />
-                <span>Archived</span>
-              </span>
-            )}
+              <button
+                type="button"
+                onClick={() => setShowArchiveConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-md transition-colors cursor-pointer shadow-2xs"
+              >
+                <Archive className="w-3.5 h-3.5 text-amber-600" />
+                <span>Archive</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => restoreMutation.mutate()}
+                disabled={restoreMutation.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                <span>{restoreMutation.isPending ? 'Restoring...' : 'Restore'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 rounded-md transition-colors cursor-pointer shadow-2xs"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Delete</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Header Card (Yaazhi Product Detail Style) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          {/* Left: 56px initials tile + Middle: badges, title, subtitle */}
+          <div className="flex items-start gap-4 min-w-0">
+            {/* 56px Initials Tile */}
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-100 border border-indigo-200/60 flex items-center justify-center text-indigo-700 font-bold text-lg shrink-0 shadow-2xs">
+              {getInitials(school.name)}
+            </div>
+
+            {/* Middle Info */}
+            <div className="min-w-0 space-y-1">
+              {/* Badge Row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill status={currentStage} fallbackText="Not started" />
+
+                {school.area && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 rounded-md text-xs font-medium shrink-0">
+                    <MapPin className="w-3 h-3 text-slate-500" />
+                    <span>{school.area}</span>
+                  </span>
+                )}
+
+                {school.studentStrength != null && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded-md text-xs font-semibold shrink-0">
+                    <GraduationCap className="w-3 h-3 text-indigo-600" />
+                    <span>{school.studentStrength.toLocaleString()} students</span>
+                  </span>
+                )}
+
+                <span className="text-xs text-slate-400 font-medium">School #{school.id}</span>
+
+                {isArchived && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-xs font-semibold shrink-0">
+                    <Archive className="w-3 h-3 text-amber-600" />
+                    <span>Archived</span>
+                  </span>
+                )}
+              </div>
+
+              {/* School Name (~24px, Bold) */}
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight truncate max-w-full" title={school.name}>
+                {school.name}
+              </h1>
+
+              {/* Address Subtitle with Ellipsis */}
+              {school.address ? (
+                <p className="text-xs text-slate-500 flex items-center gap-1.5 truncate" title={school.address}>
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">{school.address}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No address provided</p>
+              )}
+            </div>
           </div>
 
-          {/* Action buttons at top right */}
-          <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
-            {!isArchived ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMeetingToEdit(null)
-                    setIsRecordMeetingOpen(true)
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-2xs"
-                >
-                  <PhoneCall className="w-3.5 h-3.5" />
-                  <span>Record Meeting</span>
-                </button>
+          {/* Right: Key-Figure Blocks (Yaazhi Style) */}
+          <div className="flex items-center gap-6 self-start md:self-auto border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-6 shrink-0">
+            {/* LAST MEETING Block */}
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Last Meeting
+              </span>
+              <div className="text-[17px] font-bold text-slate-900 leading-tight">
+                {lastMeeting ? formatDateMedium(lastMeeting.meetingDate) : 'Never'}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                {meetings.length > 0
+                  ? `${meetings.length} ${meetings.length === 1 ? 'meeting' : 'meetings'} recorded`
+                  : 'No meetings yet'}
+              </div>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={openEditModal}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Edit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowArchiveConfirm(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-md transition-colors cursor-pointer shadow-2xs"
-                >
-                  <Archive className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Archive</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => restoreMutation.mutate()}
-                  disabled={restoreMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{restoreMutation.isPending ? 'Restoring...' : 'Restore'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 rounded-md transition-colors cursor-pointer shadow-2xs"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Delete</span>
-                </button>
-              </>
-            )}
+            {/* CAMPUS CONTACTS Block */}
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Campus Contacts
+              </span>
+              <div className="text-[17px] font-bold text-slate-900 leading-tight">
+                {contacts.length} {contacts.length === 1 ? 'Contact' : 'Contacts'}
+              </div>
+              <div className="text-[11px] text-slate-500 truncate max-w-[140px]" title={primaryContact ? primaryContact.name : ''}>
+                {primaryContact ? primaryContact.name : 'No contacts'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 2. ONE compact Campus Details Card */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[13px] font-semibold text-slate-900">Campus Details</h2>
-          {school.lead && (
-            <Link
-              to={`/leads/${school.lead.id}`}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
-            >
-              <span>Linked Lead #{school.lead.id}</span>
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          )}
-        </div>
+      {/* 3. Campus Details Card (4 Equal Tiles) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <h2 className="text-[13px] font-semibold text-slate-900 mb-3">Campus Details</h2>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Phone */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs flex flex-col justify-between min-h-[82px] max-h-[90px]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
               Phone
             </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+            <div className="mt-1">
               {school.phone ? (
-                <a
-                  href={`tel:${school.phone}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                  title={school.phone}
-                >
-                  {school.phone}
-                </a>
+                <>
+                  <div className="text-[15px] font-semibold text-slate-900 truncate" title={school.phone}>
+                    {school.phone}
+                  </div>
+                  <a
+                    href={`tel:${school.phone}`}
+                    className="text-[12px] font-medium text-blue-600 hover:text-blue-800 hover:underline block truncate mt-0.5"
+                  >
+                    Tap to call
+                  </a>
+                </>
               ) : (
-                <span className="text-slate-400 font-normal">—</span>
+                <>
+                  <div className="text-[15px] font-medium text-slate-400">—</div>
+                  <span className="text-[12px] text-slate-400 block mt-0.5">Not available</span>
+                </>
               )}
             </div>
           </div>
 
           {/* Official Email */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs flex flex-col justify-between min-h-[82px] max-h-[90px]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
               Official Email
             </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+            <div className="mt-1">
               {school.email ? (
-                <a
-                  href={`mailto:${school.email}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                  title={school.email}
-                >
-                  {school.email}
-                </a>
+                <>
+                  <div className="text-[15px] font-semibold text-slate-900 truncate" title={school.email}>
+                    {school.email}
+                  </div>
+                  <a
+                    href={`mailto:${school.email}`}
+                    className="text-[12px] font-medium text-blue-600 hover:text-blue-800 hover:underline block truncate mt-0.5"
+                  >
+                    Send email
+                  </a>
+                </>
               ) : (
-                <span className="text-slate-400 font-normal">—</span>
+                <>
+                  <div className="text-[15px] font-medium text-slate-400">—</div>
+                  <span className="text-[12px] text-slate-400 block mt-0.5">Not available</span>
+                </>
               )}
             </div>
           </div>
 
           {/* Website */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs flex flex-col justify-between min-h-[82px] max-h-[90px]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
               Website
             </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+            <div className="mt-1">
               {school.website ? (
-                <a
-                  href={
-                    school.website.startsWith('http') ? school.website : `https://${school.website}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 truncate max-w-full"
-                  title={school.website}
-                >
-                  <span className="truncate">{school.website.replace(/^https?:\/\//i, '')}</span>
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                </a>
+                <>
+                  <div className="text-[15px] font-semibold text-slate-900 truncate" title={school.website}>
+                    {school.website.replace(/^https?:\/\//i, '')}
+                  </div>
+                  <a
+                    href={school.website.startsWith('http') ? school.website : `https://${school.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 mt-0.5 truncate"
+                  >
+                    <span>Visit website</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </>
               ) : (
-                <span className="text-slate-400 font-normal">—</span>
+                <>
+                  <div className="text-[15px] font-medium text-slate-400">—</div>
+                  <span className="text-[12px] text-slate-400 block mt-0.5">No website</span>
+                </>
               )}
             </div>
           </div>
 
-          {/* Area */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
-              Area
-            </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate" title={school.area || ''}>
-              {school.area || <span className="text-slate-400 font-normal">—</span>}
-            </div>
-          </div>
-
-          {/* Address (spans 2 cols) */}
-          <div className="col-span-2 p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+          {/* Address */}
+          <div className="p-3.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs flex flex-col justify-between min-h-[82px] max-h-[90px]">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
               Address
             </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+            <div className="mt-1">
               {school.address ? (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    `${school.name} ${school.address}`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5 truncate max-w-full"
-                  title={school.address}
-                >
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  <span className="truncate">{school.address}</span>
-                </a>
+                <>
+                  <div className="text-[15px] font-semibold text-slate-900 truncate" title={school.address}>
+                    {school.address}
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      `${school.name} ${school.address}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 mt-0.5 truncate"
+                  >
+                    <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                    <span>Open in Maps</span>
+                  </a>
+                </>
               ) : (
-                <span className="text-slate-400 font-normal">—</span>
+                <>
+                  <div className="text-[15px] font-medium text-slate-400">—</div>
+                  <span className="text-[12px] text-slate-400 block mt-0.5">No address</span>
+                </>
               )}
-            </div>
-          </div>
-
-          {/* Student Strength */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
-              Student Strength
-            </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
-              {school.studentStrength != null ? (
-                <span>{school.studentStrength.toLocaleString()}</span>
-              ) : (
-                <span className="text-slate-400 font-normal">—</span>
-              )}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
-              Notes
-            </span>
-            <div className="text-sm font-medium text-slate-900 mt-1 truncate" title={school.notes || ''}>
-              {school.notes || <span className="text-slate-400 font-normal">—</span>}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Campus Contacts Card */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-        <div className="border-b border-slate-100 pb-2.5 mb-3 flex items-center justify-between">
+      {/* 4. Campus Contacts Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-500" />
-            <h2 className="text-[13px] font-semibold text-slate-900">
-              Campus Contacts
-            </h2>
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-medium">
-              {contacts.length}
-            </span>
+            <h2 className="text-[13px] font-semibold text-slate-900">Campus Contacts</h2>
           </div>
-          {!isArchived && (
-            <button
-              type="button"
-              onClick={openAddContactModal}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Contact</span>
-            </button>
-          )}
-        </div>
-
-        {contacts.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 flex flex-col items-center justify-center">
-            <Users className="w-8 h-8 text-slate-300 mb-1" />
-            <span>No contacts added yet.</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">
+              {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
+            </span>
             {!isArchived && (
               <button
                 type="button"
                 onClick={openAddContactModal}
-                className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs"
               >
-                Add Primary Contact
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Contact</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {contacts.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-2">
+            <Users className="w-8 h-8 text-slate-300" />
+            <p className="text-sm font-semibold text-slate-700">No contacts added yet</p>
+            {!isArchived && (
+              <button
+                type="button"
+                onClick={openAddContactModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-xs mt-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Primary Contact</span>
               </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs divide-y divide-slate-100">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-3 py-2 font-semibold text-slate-600 uppercase tracking-wider">
-                    Name & Role
-                  </th>
-                  <th className="px-3 py-2 font-semibold text-slate-600 uppercase tracking-wider">
-                    Phone & Email
-                  </th>
-                  <th className="px-3 py-2 font-semibold text-slate-600 uppercase tracking-wider">
-                    Notes
-                  </th>
-                  {!isArchived && (
-                    <th className="px-3 py-2 font-semibold text-slate-600 uppercase tracking-wider text-right">
-                      Actions
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs divide-y divide-slate-200">
+                <thead className="bg-slate-50/80">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[220px]">
+                      Name & Role
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {contacts.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/70">
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-slate-900">{c.name}</span>
-                        {c.isPrimary && (
-                          <span className="px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                      {c.role && <span className="text-[11px] text-slate-500 block">{c.role}</span>}
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      {c.phone ? (
-                        <a
-                          href={`tel:${c.phone}`}
-                          className="text-blue-600 hover:underline block"
-                        >
-                          {c.phone}
-                        </a>
-                      ) : null}
-                      {c.email ? (
-                        <a
-                          href={`mailto:${c.email}`}
-                          className="text-slate-500 text-[11px] hover:underline block truncate max-w-[140px]"
-                          title={c.email}
-                        >
-                          {c.email}
-                        </a>
-                      ) : null}
-                      {!c.phone && !c.email && <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="px-3 py-2.5 text-slate-600 max-w-[150px] truncate" title={c.notes || ''}>
-                      {c.notes || <span className="text-slate-400">—</span>}
-                    </td>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[220px]">
+                      Phone & Email
+                    </th>
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider">
+                      Notes
+                    </th>
                     {!isArchived && (
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          {!c.isPrimary && (
-                            <button
-                              type="button"
-                              onClick={() => makePrimaryMutation.mutate(c.id)}
-                              className="px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded border border-slate-200 cursor-pointer"
-                              title="Make primary contact"
-                            >
-                              Make primary
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => openEditContactModal(c)}
-                            className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 cursor-pointer"
-                            title="Edit contact"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setContactToDelete(c)}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer"
-                            title="Delete contact"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider text-right w-[140px]">
+                        Actions
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {contacts.map((c) => (
+                    <tr key={c.id} className="h-[52px] hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900">{c.name}</span>
+                          {c.isPrimary && (
+                            <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[10px] font-bold">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        {c.role && <span className="text-[11px] text-slate-500 block">{c.role}</span>}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`} className="text-blue-600 hover:underline block">
+                            {c.phone}
+                          </a>
+                        )}
+                        {c.email && (
+                          <a
+                            href={`mailto:${c.email}`}
+                            className="text-slate-500 text-[11px] hover:underline block truncate max-w-[200px]"
+                            title={c.email}
+                          >
+                            {c.email}
+                          </a>
+                        )}
+                        {!c.phone && !c.email && <span className="text-slate-400">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-600">
+                        {c.notes ? (
+                          <span className="line-clamp-2 block" title={c.notes}>
+                            {c.notes}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">No notes</span>
+                        )}
+                      </td>
+                      {!isArchived && (
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {!c.isPrimary && (
+                              <button
+                                type="button"
+                                onClick={() => makePrimaryMutation.mutate(c.id)}
+                                className="px-2 py-1 text-[11px] font-semibold text-slate-700 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 rounded border border-slate-200 cursor-pointer transition-colors"
+                                title="Make primary contact"
+                              >
+                                Primary
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openEditContactModal(c)}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 rounded-md hover:bg-blue-50 cursor-pointer transition-colors"
+                              title="Edit contact"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setContactToDelete(c)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 cursor-pointer transition-colors"
+                              title="Delete contact"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
 
-      {/* 4. Meeting History Card */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-        <div className="border-b border-slate-100 pb-2.5 mb-3 flex items-center justify-between">
+      {/* 5. Meeting History Card (Yaazhi Table Style) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-slate-500" />
-            <h2 className="text-[13px] font-semibold text-slate-900">
-              Meeting History
-            </h2>
+            <h2 className="text-[13px] font-semibold text-slate-900">Meeting History</h2>
           </div>
-          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-medium">
+          <span className="text-xs font-medium text-slate-500">
             {meetings.length} {meetings.length === 1 ? 'meeting' : 'meetings'}
           </span>
         </div>
 
-          {meetings.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
-              No meetings recorded yet.
+        {meetings.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 space-y-3">
+            <History className="w-8 h-8 text-slate-300 mx-auto" />
+            <div>
+              <p className="text-sm font-semibold text-slate-700">No meetings recorded yet</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Keep log of visits, calls, and product demos with campus officials.
+              </p>
             </div>
-          ) : (
+            {!isArchived && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMeetingToEdit(null)
+                  setIsRecordMeetingOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-xs"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Record first meeting</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+                <thead className="bg-slate-50/80">
                   <tr>
                     <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[130px]">
-                      Date & Time
+                      Date
                     </th>
                     <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[100px]">
                       Type
                     </th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[150px]">
+                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[160px]">
                       Met with
                     </th>
                     <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[150px]">
-                      Location
-                    </th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[140px]">
                       Stage
                     </th>
                     <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider">
@@ -752,13 +825,11 @@ export const SchoolDetailPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {meetings.map((m) => {
-                    const mStageColor = m.stage?.color || '#64748B'
-
                     return (
-                      <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* Date & Time */}
-                        <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-700 font-medium">
-                          {formatDateShort(m.meetingDate)}
+                      <tr key={m.id} className="h-[52px] hover:bg-slate-50/70 transition-colors">
+                        {/* Date */}
+                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-900 font-semibold">
+                          {formatDateMedium(m.meetingDate)}
                           {m.meetingTime && (
                             <span className="text-[11px] text-slate-500 block font-normal">
                               {m.meetingTime}
@@ -767,14 +838,14 @@ export const SchoolDetailPage: React.FC = () => {
                         </td>
 
                         {/* Type */}
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                             {m.type}
                           </span>
                         </td>
 
                         {/* Met with */}
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-700">
+                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-700">
                           {m.contact ? (
                             <div>
                               <span className="font-semibold text-slate-900">{m.contact.name}</span>
@@ -789,49 +860,33 @@ export const SchoolDetailPage: React.FC = () => {
                           )}
                         </td>
 
-                        {/* Location */}
-                        <td className="px-4 py-3 text-slate-600 truncate max-w-[150px]" title={m.locationName || ''}>
-                          {m.locationName || <span className="text-slate-400">—</span>}
-                        </td>
-
                         {/* Stage Pill */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {m.stage ? (
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border"
-                              style={{
-                                backgroundColor: `${mStageColor}15`,
-                                borderColor: `${mStageColor}40`,
-                                color: mStageColor,
-                              }}
-                            >
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: mStageColor }}
-                              />
-                              <span>{m.stage.name}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <StatusPill status={m.stage} fallbackText="—" />
                         </td>
 
                         {/* Notes */}
-                        <td className="px-4 py-3 text-slate-700 break-words whitespace-pre-wrap">
-                          {m.notes || <span className="text-slate-400 italic">No notes</span>}
+                        <td className="px-4 py-2.5 text-slate-700">
+                          {m.notes ? (
+                            <span className="line-clamp-2 block" title={m.notes}>
+                              {m.notes}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">No notes</span>
+                          )}
                         </td>
 
                         {/* Actions (active only) */}
                         {!isArchived && (
-                          <td className="px-4 py-3 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="px-4 py-2.5 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setMeetingToEdit(m)
                                   setIsRecordMeetingOpen(true)
                                 }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-blue-600 rounded-md hover:bg-blue-50 cursor-pointer transition-colors"
                                 title="Edit meeting"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -839,7 +894,7 @@ export const SchoolDetailPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => setMeetingToDelete(m)}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 cursor-pointer transition-colors"
                                 title="Delete meeting"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -853,10 +908,11 @@ export const SchoolDetailPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-      {/* 5. Thin Muted Footer Line */}
+      {/* 6. Thin Muted Footer Line */}
       <div className="text-xs text-slate-400 text-center py-2 px-1">
         <span>Created {formatDateTimeIST(school.createdAt)}</span>
         <span className="mx-1.5">·</span>
@@ -864,7 +920,7 @@ export const SchoolDetailPage: React.FC = () => {
         {school.archivedAt && (
           <>
             <span className="mx-1.5">·</span>
-            <span className="text-amber-600">Archived {formatDateTimeIST(school.archivedAt)}</span>
+            <span className="text-amber-600 font-medium">Archived {formatDateTimeIST(school.archivedAt)}</span>
           </>
         )}
       </div>
@@ -877,7 +933,7 @@ export const SchoolDetailPage: React.FC = () => {
               <h2 className="text-base font-bold text-slate-900">Edit School</h2>
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer hover:bg-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1042,7 +1098,7 @@ export const SchoolDetailPage: React.FC = () => {
               </h2>
               <button
                 onClick={() => setIsContactModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer hover:bg-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1111,7 +1167,7 @@ export const SchoolDetailPage: React.FC = () => {
                       key={r}
                       type="button"
                       onClick={() => setContactRole(r)}
-                      className="px-2 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                      className="px-2 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors cursor-pointer"
                     >
                       {r}
                     </button>
@@ -1165,7 +1221,7 @@ export const SchoolDetailPage: React.FC = () => {
                     type="checkbox"
                     checked={contactIsPrimary}
                     onChange={(e) => setContactIsPrimary(e.target.checked)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                   />
                   <span className="text-xs font-semibold text-slate-800">
                     Set as Primary Contact for this school
@@ -1213,17 +1269,20 @@ export const SchoolDetailPage: React.FC = () => {
       {/* Delete Contact Confirmation Dialog */}
       {contactToDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg max-w-sm w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">Delete Contact</h3>
-            <p className="text-xs text-slate-600 mb-4">
-              Are you sure you want to remove <strong>{contactToDelete.name}</strong>?
+          <div className="bg-white border border-slate-200 rounded-xl max-w-sm w-full p-5 shadow-xl space-y-3">
+            <div className="flex items-center gap-2.5 text-rose-600">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-bold text-slate-900">Delete Contact?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
+              Are you sure you want to remove <span className="font-semibold text-slate-900">{contactToDelete.name}</span>?
               {contactToDelete.isPrimary && contacts.length > 1 && (
                 <span className="block mt-1 text-slate-500 italic">
                   Note: The oldest remaining contact will automatically be promoted to primary.
                 </span>
               )}
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setContactToDelete(null)}
@@ -1247,16 +1306,19 @@ export const SchoolDetailPage: React.FC = () => {
       {/* Delete Meeting Confirmation Dialog */}
       {meetingToDelete && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg max-w-sm w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">Delete Meeting</h3>
-            <p className="text-xs text-slate-600 mb-4">
+          <div className="bg-white border border-slate-200 rounded-xl max-w-sm w-full p-5 shadow-xl space-y-3">
+            <div className="flex items-center gap-2.5 text-rose-600">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-bold text-slate-900">Delete Meeting Record?</h3>
+            </div>
+            <p className="text-xs text-slate-600">
               Are you sure you want to delete this meeting record from{' '}
-              <strong>{formatDateShort(meetingToDelete.meetingDate)}</strong>?
+              <span className="font-semibold text-slate-900">{formatDateMedium(meetingToDelete.meetingDate)}</span>?
               <span className="block mt-1 text-slate-500 italic">
                 The school's current stage will automatically re-sync to the prior meeting.
               </span>
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setMeetingToDelete(null)}
@@ -1280,16 +1342,26 @@ export const SchoolDetailPage: React.FC = () => {
       {/* Archive School Confirmation Dialog */}
       {showArchiveConfirm && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg max-w-sm w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">Archive School</h3>
-            <p className="text-xs text-slate-600 mb-4">
-              Archive <strong>{school.name}</strong>? It will become view-only and hidden from active lists until restored.
+          <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <Archive className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Archive this school?</h3>
+                <p className="text-xs text-slate-500">
+                  Are you sure you want to archive "{school.name}"?
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-100">
+              Archived schools will become view-only and hidden from active lists until restored.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setShowArchiveConfirm(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -1297,9 +1369,9 @@ export const SchoolDetailPage: React.FC = () => {
                 type="button"
                 disabled={archiveMutation.isPending}
                 onClick={() => archiveMutation.mutate()}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 rounded hover:bg-amber-700 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-md cursor-pointer transition-colors shadow-xs disabled:opacity-60"
               >
-                {archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+                {archiveMutation.isPending ? 'Archiving...' : 'Yes, Archive School'}
               </button>
             </div>
           </div>
@@ -1309,13 +1381,20 @@ export const SchoolDetailPage: React.FC = () => {
       {/* Permanent Delete School Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg max-w-md w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-rose-700 mb-2">Permanently Delete School</h3>
-            <p className="text-xs text-slate-600 mb-2">
-              Are you sure you want to permanently delete <strong>{school.name}</strong>?
+          <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete permanently?</h3>
+                <p className="text-xs text-rose-600 font-medium">This cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded border border-slate-100">
+              School "{school.name}" and all associated data will be deleted permanently:
             </p>
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded text-xs text-rose-800 space-y-1 mb-4">
-              <p className="font-semibold">This action cannot be undone and will delete:</p>
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded text-xs text-rose-800 space-y-1">
               <ul className="list-disc list-inside space-y-0.5">
                 <li>
                   <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}
@@ -1325,11 +1404,11 @@ export const SchoolDetailPage: React.FC = () => {
                 </li>
               </ul>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -1337,7 +1416,7 @@ export const SchoolDetailPage: React.FC = () => {
                 type="button"
                 disabled={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate()}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 rounded hover:bg-rose-700 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-md cursor-pointer transition-colors shadow-xs disabled:opacity-60"
               >
                 {deleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
               </button>

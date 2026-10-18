@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+:root {
+  --status-pill-width: 172px;
+  --status-col-width: 196px;
+  scrollbar-gutter: stable;
+}
+
+html, body {
+  scrollbar-gutter: stable;
+}
+
 @layer base {
   * {
     border-color: #e2e8f0;

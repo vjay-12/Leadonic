@@ -393,7 +393,7 @@ Commit to `main` after each item. Tick the box when done.
 - [x] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
 - [x] 11. Leads table optimization (single-row fixed layout, responsive cards), Lead detail page (`/leads/:id`) matching Yaazhi style, Archive-before-delete workflow (schema migration, API endpoints, import check, UI)
 - [x] 12. Contact Recording: ContactLog schema & Neon migration, backfill existing leads, status derived from latest log, contact API endpoints, IST date validation, table layout with Record button & latest note/last contact, Record Contact dialog, Contact History card on detail page, and Contacted Today dashboard card.
-- [ ] 13. School ERP Module:
+- [x] 13. School ERP Module:
   - Database: `school_stages`, `schools`, `school_contacts`, `school_meetings` with Neon migration & seed stages.
   - Server Rules: stage read-only derived from latest meeting (`meeting_date desc, meeting_time desc, created_at desc`), default "Not started"; reject future dates (IST); reject writes on archived schools; primary contact lifecycle management; dedupe key `p:phone` or `t:name|area` (409); archive before delete (409); stage delete blocked when in use (409).
   - API: `/api/schools`, `/api/school-contacts`, `/api/school-meetings`, `/api/school-stages`, `POST /api/leads/:id/move-to-school-erp`.
@@ -404,6 +404,13 @@ Commit to `main` after each item. Tick the box when done.
     - Record Meeting Dialog: inline "+ New contact", type, date, time, location, met with, stage, notes.
     - Leads Integration: "Move to School ERP" and "Open school" buttons on School category leads.
     - Settings: "School stages" tab.
+- [x] 14. UI Polish & Yaazhi Detail Page Styling:
+  - Leads List (`/leads`): 7 fixed columns (Title min 220px, Phone 130px, Category 110px chip, Status uniform pill + 24px, Priority 90px centered, Last Contact 110px centered, Actions 170px; Latest note removed).
+  - Uniform Status Pill: dynamic measurement of longest status name (`computeSharedPillWidth`) applied via CSS variable `--status-pill-width`, height ~28px, centered dot + text, no truncation. 24-character limit on status names enforced client and server side.
+  - Shared SegmentedTabs: accessible pill toggle for Active / Archived views across Leads and School ERP.
+  - Lead Detail Page (`/leads/:id`): top toolbar row (Back link on left; Record, Edit, Archive/Restore/Delete, Open School on right; no buttons inside header). Header card with 56px initials tile, badge row, ~24px title, address subtitle, and right key figures (LAST CONTACT and RATING). Separate Contact Details card (4 equal tiles: Phone with "Tap to call", Emails with "Send email", Website with external link, Address with Google Maps link). Separate Business Information card (6 equal tiles: Maps category, Priority score, ERP match, Has website, Needs website, Needs ERP). Contact History card with clock icon, plain "N records" count, bordered rounded table with 52px rows, and 2-line clamped notes with tooltip.
+  - School ERP Detail Page (`/school-erp/:id`): matching top toolbar, 56px initials tile, key-figure blocks (LAST MEETING, CAMPUS CONTACTS), 4 equal campus spec tiles, and 52px rows in contacts and meetings tables.
+  - Modal Audits: removed unused status field from Add Lead modal; all modals close on Escape key.
 
 ---
 

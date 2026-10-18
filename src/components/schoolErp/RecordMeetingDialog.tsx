@@ -75,6 +75,16 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
     }
   }, [isOpen, meetingToEdit, stages, contacts])
 
+  // Handle Escape key to close
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   const saveMeetingMutation = useMutation({
     mutationFn: (data: any) => {
       if (meetingToEdit) {

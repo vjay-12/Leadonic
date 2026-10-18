@@ -17,7 +17,7 @@ interface AddLeadModalProps {
 export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   isOpen,
   onClose,
-  statuses,
+  statuses: _statuses,
   categories,
   leadToEdit,
 }) => {
@@ -27,7 +27,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   const [title, setTitle] = useState('')
   const [phone, setPhone] = useState('')
   const [categoryId, setCategoryId] = useState<number | ''>('')
-  const [statusId, setStatusId] = useState<number | ''>('')
   const [remarks, setRemarks] = useState('')
   const [priority, setPriority] = useState<string>('')
   const [address, setAddress] = useState('')
@@ -46,7 +45,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
     setTitle('')
     setPhone('')
     setCategoryId(categories[0]?.id || '')
-    setStatusId('')
     setRemarks('')
     setPriority('')
     setAddress('')
@@ -61,13 +59,22 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
     setErrorMessage(null)
   }
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   useEffect(() => {
     if (isOpen) {
       if (leadToEdit) {
         setTitle(leadToEdit.title || '')
         setPhone(leadToEdit.phone || '')
         setCategoryId(leadToEdit.categoryId || '')
-        setStatusId(leadToEdit.statusId || '')
         setRemarks(leadToEdit.remarks || '')
         setPriority(leadToEdit.priority || '')
         setAddress(leadToEdit.address || '')
@@ -130,7 +137,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
       title: title.trim(),
       phone: phone.trim() || null,
       categoryId: categoryId ? Number(categoryId) : null,
-      statusId: statusId ? Number(statusId) : null,
       remarks: remarks.trim() || null,
       priority: priority || null,
       address: address.trim() || null,
@@ -221,25 +227,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Status (Optional)
-              </label>
-              <select
-                value={statusId}
-                onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-              >
-                <option value="">Not called (No status)</option>
-                {statuses.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
                   </option>
                 ))}
               </select>

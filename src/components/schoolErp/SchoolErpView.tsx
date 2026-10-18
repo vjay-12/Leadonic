@@ -6,6 +6,8 @@ import { useToast } from '../../context/ToastContext'
 import { School } from '../../types'
 import { formatDateShort } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
+import { SegmentedTabs } from '../common/SegmentedTabs'
+import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import {
   Search,
   Plus,
@@ -61,6 +63,21 @@ export const SchoolErpView: React.FC = () => {
     queryKey: ['schoolStages'],
     queryFn: () => api.getSchoolStages(),
   })
+
+  // Synchronize stage pill widths
+  useStatusPillWidth(stages)
+
+  // Escape key handler for modals
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (recordTargetSchool) setRecordTargetSchool(null)
+        else if (isAddModalOpen) setIsAddModalOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [recordTargetSchool, isAddModalOpen])
 
   // Fetch Areas
   const { data: areas = [] } = useQuery({
@@ -216,7 +233,7 @@ export const SchoolErpView: React.FC = () => {
             setStageFilter(e.target.value)
             setPage(1)
           }}
-          className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+          className="w-40 px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
         >
           <option value="">All Stages</option>
           <option value="none">Not started</option>
@@ -234,7 +251,7 @@ export const SchoolErpView: React.FC = () => {
             setAreaFilter(e.target.value)
             setPage(1)
           }}
-          className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+          className="w-36 px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
         >
           <option value="">All Areas</option>
           {areas.map((a) => (
@@ -244,37 +261,14 @@ export const SchoolErpView: React.FC = () => {
           ))}
         </select>
 
-        {/* Active / Archived Toggle */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => {
-              setArchivedFilter('active')
-              setPage(1)
-            }}
-            className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-              archivedFilter === 'active'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setArchivedFilter('archived')
-              setPage(1)
-            }}
-            className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-              archivedFilter === 'archived'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Archived
-          </button>
-        </div>
+        {/* Active / Archived Tabs */}
+        <SegmentedTabs
+          value={archivedFilter}
+          onChange={(val) => {
+            setArchivedFilter(val as 'active' | 'archived')
+            setPage(1)
+          }}
+        />
 
         {/* Reset Filters */}
         {(searchInput || search || stageFilter || areaFilter || archivedFilter !== 'active') && (
@@ -379,7 +373,6 @@ export const SchoolErpView: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {schools.map((school) => {
                     const currentStage = school.stage
-                    const stageColor = currentStage?.color || '#64748B'
                     const contact = school.primaryContact
 
                     return (
@@ -451,30 +444,9 @@ export const SchoolErpView: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 5. Stage (11%): read-only colored pill, 'Not started' in grey when empty */}
+                        {/* 5. Stage: read-only uniform status pill */}
                         <td className="px-2.5 py-2.5 whitespace-nowrap">
-                          {currentStage ? (
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border truncate max-w-full"
-                              style={{
-                                backgroundColor: `${stageColor}15`,
-                                borderColor: `${stageColor}40`,
-                                color: stageColor,
-                              }}
-                              title={currentStage.name}
-                            >
-                              <span
-                                className="w-1.5 h-1.5 rounded-full shrink-0"
-                                style={{ backgroundColor: stageColor }}
-                              />
-                              <span className="truncate">{currentStage.name}</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
-                              <span>Not started</span>
-                            </span>
-                          )}
+                          <StatusPill status={currentStage} fallbackText="Not started" />
                         </td>
 
                         {/* 6. Last meeting (9%): like "18 Oct" or "-" */}
@@ -510,7 +482,6 @@ export const SchoolErpView: React.FC = () => {
             <div className="md:hidden divide-y divide-slate-200">
               {schools.map((school) => {
                 const currentStage = school.stage
-                const stageColor = currentStage?.color || '#64748B'
                 const contact = school.primaryContact
 
                 return (
@@ -540,24 +511,7 @@ export const SchoolErpView: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        {currentStage ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
-                            style={{
-                              backgroundColor: `${stageColor}15`,
-                              borderColor: `${stageColor}40`,
-                              color: stageColor,
-                            }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stageColor }} />
-                            <span>{currentStage.name}</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                            <span>Not started</span>
-                          </span>
-                        )}
+                        <StatusPill status={currentStage} fallbackText="Not started" />
                       </div>
                     </div>
 

@@ -35,6 +35,18 @@ export function formatDateShort(dateVal: string | Date | null | undefined): stri
   }).format(d)
 }
 
+export function formatDateMedium(dateVal: string | Date | null | undefined): string {
+  if (!dateVal) return '—'
+  const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal
+  if (isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d)
+}
+
 export function formatDateTimeIST(dateVal: string | Date | null | undefined): string {
   if (!dateVal) return '—'
   const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal
