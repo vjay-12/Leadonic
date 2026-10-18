@@ -1,0 +1,79 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model LeadStatus {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String   @default("#64748B")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  leads     Lead[]
+
+  @@map("lead_statuses")
+}
+
+model LeadCategory {
+  id        Int           @id @default(autoincrement())
+  name      String        @unique
+  sortOrder Int           @default(0) @map("sort_order")
+  createdAt DateTime      @default(now()) @map("created_at")
+  leads     Lead[]
+  batches   ImportBatch[]
+
+  @@map("lead_categories")
+}
+
+model ImportBatch {
+  id           Int           @id @default(autoincrement())
+  fileName     String        @map("file_name")
+  categoryId   Int?          @map("category_id")
+  category     LeadCategory? @relation(fields: [categoryId], references: [id])
+  addedCount   Int           @default(0) @map("added_count")
+  skippedCount Int           @default(0) @map("skipped_count")
+  errorCount   Int           @default(0) @map("error_count")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  leads        Lead[]
+
+  @@map("import_batches")
+}
+
+model Lead {
+  id              Int           @id @default(autoincrement())
+  title           String
+  phone           String?
+  phoneNormalized String?       @map("phone_normalized")
+  dedupeKey       String        @unique @map("dedupe_key")
+  emails          String?
+  website         String?
+  mapsCategory    String?       @map("maps_category")
+  address         String?
+  reviewRating    Decimal?      @map("review_rating") @db.Decimal(3, 1)
+  reviewCount     Int?          @map("review_count")
+  hasWebsite      Boolean?      @map("has_website")
+  needsWebsite    Boolean?      @map("needs_website")
+  erpMatch        String?       @map("erp_match")
+  needsErp        Boolean?      @map("needs_erp")
+  priorityScore   Decimal?      @map("priority_score") @db.Decimal(8, 2)
+  priority        String?
+  remarks         String?
+  statusId        Int?          @map("status_id")
+  status          LeadStatus?   @relation(fields: [statusId], references: [id])
+  categoryId      Int?          @map("category_id")
+  category        LeadCategory? @relation(fields: [categoryId], references: [id])
+  batchId         Int?          @map("batch_id")
+  batch           ImportBatch?  @relation(fields: [batchId], references: [id])
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([statusId])
+  @@index([categoryId])
+  @@index([priority])
+  @@map("leads")
+}

@@ -327,16 +327,16 @@ The app is public on Vercel and holds business contact data, so protect it with 
 
 Commit to `main` after each item. Tick the box when done.
 
-- [ ] 1. Reset the repo (section 1) and scaffold the new project (Vite, Express, Prisma, `api/index.ts`)
-- [ ] 2. Prisma schema, first migration on Neon, seed script
-- [ ] 3. Auth (login, logout, session middleware) and the app shell with the sidebar
-- [ ] 4. Settings: Statuses and Categories (API and UI)
-- [ ] 5. Leads API and the Leads table with inline status and category dropdowns, filters, search, side panel
-- [ ] 6. Add Lead form
-- [ ] 7. Excel import (parse, map headers, category step, dry run, chunked import, summary)
-- [ ] 8. Dashboard
-- [ ] 9. Report and CSV exports
-- [ ] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
+- [x] 1. Reset the repo (section 1) and scaffold the new project (Vite, Express, Prisma, `api/index.ts`)
+- [x] 2. Prisma schema, first migration on Neon, seed script
+- [x] 3. Auth (login, logout, session middleware) and the app shell with the sidebar
+- [x] 4. Settings: Statuses and Categories (API and UI)
+- [x] 5. Leads API and the Leads table with inline status and category dropdowns, filters, search, side panel
+- [x] 6. Add Lead form
+- [x] 7. Excel import (parse, map headers, category step, dry run, chunked import, summary)
+- [x] 8. Dashboard
+- [x] 9. Report and CSV exports
+- [x] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
 
 ## 10. Acceptance test (run before saying "done")
 
