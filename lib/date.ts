@@ -34,3 +34,20 @@ export function formatDateShort(dateVal: string | Date | null | undefined): stri
     month: 'short',
   }).format(d)
 }
+
+export function formatDateTimeIST(dateVal: string | Date | null | undefined): string {
+  if (!dateVal) return '—'
+  const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal
+  if (isNaN(d.getTime())) return '—'
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(d)
+  return parts.replace(/\b(am|pm)\b/i, (m) => m.toUpperCase())
+}
+

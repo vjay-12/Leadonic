@@ -354,14 +354,15 @@ The app is public on Vercel and holds business contact data, so protect it with 
    - Title: "Record Contact" with lead's name.
    - Fields: Date (defaults to today in IST, can pick past date, rejects future dates), Status (required dropdown), Notes (textarea max 1000).
    - On save: creates/updates contact log, refreshes data, shows toast.
-5. **Lead Detail Page (`/leads/:id`):**
-   - Header card: title, category badge, status pill, priority badge, tap-to-call phone button. Action buttons: **Record** (for active leads), **Edit**, **Archive** (or Restore + Delete if archived).
-   - Section cards:
-     - **Contact:** phone, emails, website (link), address (Google Maps link).
-     - **Business info:** Maps category, rating and review count, has website, needs website, ERP match, needs ERP, priority score.
-     - **Tracking:** status (plain read-only pill), category dropdown.
-     - **Contact History card** (styled like Yaazhi's Stock Movement & Audit History): header "Contact History", "N records" count on right, table with Date, Status (pill), Notes (newest first). Each entry has edit and delete icons (edit opens Record dialog prefilled; delete asks confirmation). Archived leads are view-only. Empty state: "No contacts logged yet."
-     - **Record info:** created, last updated, import batch file name.
+5. **Lead Detail Page (`/leads/:id`) (Compact Yaazhi Style):**
+   - **Header card (compact):** "Back to Leads" link; title (~22px) with badges on the same row (category, status, priority, phone call button, archived badge). Action buttons at top right: **Record** (for active leads), **Edit**, **Archive** (or Restore + Delete if archived), plus **Move to School ERP** / **Open school** if category is School. Card padding ~16px.
+   - **ONE compact "Lead Details" card:** responsive grid (4 columns at >=1280px, 3 at 1024px, 2 on tablet/phone).
+     - Tiles: Phone, Emails, Website, Address (spans 2 columns), Maps category, Rating & reviews (like "4.5 ★ (120)"), Priority score, ERP match, Has website, Needs website, Needs ERP.
+     - Tile style: padding 10-12px, radius ~10px, subtle background (`bg-slate-50/70 border border-slate-200/80`), 11px uppercase muted label, 14px medium value. Non-monospace for phone and email. Empty values show "—" in muted grey. Long values stay on one line with ellipsis and tooltip. Links: email (mailto), website (new tab), address (Google Maps).
+     - Card title: small 13px heading with no large icon.
+   - **Contact History card:** directly follows Lead Details card. Header "Contact History" with record count badge, newest-first table with Date, Status pill, Notes, and Edit/Delete actions for active leads.
+   - **Single thin muted footer line:** "Created 18 Oct 2026, 4:27 PM · Updated 18 Oct 2026, 4:27 PM · Import: sample-leads.xlsx" (formatted in Asia/Kolkata).
+   - Removed: Tracking & Follow-up card, Record Information card, and large 3-row 2-column layout of oversized boxes. Fits header, entire Lead Details card, and top of Contact History card on 1366x768 without scrolling.
 6. **Report:** category by status table (active leads only) with filters for category and date range, and **Download CSV** button.
 7. **Settings:** Statuses and Categories management.
 

@@ -3,10 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
-import { Lead, ContactLog } from '../../types'
+import { ContactLog } from '../../types'
 import { AddLeadModal } from './AddLeadModal'
 import { RecordContactDialog } from './RecordContactDialog'
-import { formatDateShort } from '../../../lib/date'
+import { formatDateShort, formatDateTimeIST } from '../../../lib/date'
 import {
   ArrowLeft,
   Phone,
@@ -18,13 +18,10 @@ import {
   ExternalLink,
   RefreshCw,
   AlertTriangle,
-  Building2,
   Layers,
   Star,
   CheckCircle2,
   XCircle,
-  Clock,
-  Sparkles,
   PhoneCall,
   History,
   Pencil,
@@ -75,21 +72,6 @@ export const LeadDetailPage: React.FC = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.getCategories(),
-  })
-
-  // Update lead mutation (for category change)
-  const updateMutation = useMutation({
-    mutationFn: (data: Partial<Lead>) => api.updateLead(leadId, data),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['lead', leadId], updated)
-      queryClient.invalidateQueries({ queryKey: ['leads'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      success('Category updated')
-    },
-    onError: (err: any) => {
-      toastError(err.message || 'Failed to update lead')
-    },
   })
 
   // Archive mutation
@@ -242,97 +224,94 @@ export const LeadDetailPage: React.FC = () => {
   const statusColor = currentStatus?.color || '#64748B'
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between">
-        <Link
-          to="/leads"
-          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-600 hover:text-slate-900 transition-colors py-1"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Leads</span>
-        </Link>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-3 pb-8">
+      {/* 1. Header Card (Compact Yaazhi Style) */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <div className="mb-2">
+          <Link
+            to="/leads"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Leads</span>
+          </Link>
+        </div>
 
-      {/* Header Card (Yaazhi Style) */}
-      <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">{lead.title}</h1>
-              {isArchived && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-xs font-semibold">
-                  <Archive className="w-3 h-3 text-amber-600" />
-                  <span>Archived</span>
-                </span>
-              )}
-            </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Title (~22px) and Badges on the same row */}
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <h1 className="text-[22px] font-bold text-slate-900 tracking-tight truncate max-w-full" title={lead.title}>
+              {lead.title}
+            </h1>
 
-            {/* Badges & Quick actions */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Category Badge */}
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-xs font-medium">
-                <Layers className="w-3 h-3 text-slate-500" />
-                <span>{lead.category?.name || 'Uncategorized'}</span>
+            {/* Category badge */}
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200/80 rounded-md text-xs font-medium shrink-0">
+              <Layers className="w-3 h-3 text-slate-500" />
+              <span>{lead.category?.name || 'Uncategorized'}</span>
+            </span>
+
+            {/* Status pill (read-only) */}
+            {currentStatus ? (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0"
+                style={{
+                  backgroundColor: `${statusColor}15`,
+                  borderColor: `${statusColor}40`,
+                  color: statusColor,
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
+                <span>{currentStatus.name}</span>
               </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                <span>Not called</span>
+              </span>
+            )}
 
-              {/* Status Pill (Read-only) */}
-              {currentStatus ? (
-                <span
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
-                  style={{
-                    backgroundColor: `${statusColor}15`,
-                    borderColor: `${statusColor}40`,
-                    color: statusColor,
-                  }}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
-                  <span>{currentStatus.name}</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
-                  <span>Not called</span>
-                </span>
-              )}
+            {/* Priority badge */}
+            {lead.priority && (
+              <span
+                className={`px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 ${
+                  lead.priority.toLowerCase() === 'high'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : lead.priority.toLowerCase() === 'medium'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                {lead.priority} Priority
+              </span>
+            )}
 
-              {/* Priority Badge */}
-              {lead.priority && (
-                <span
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                    lead.priority.toLowerCase() === 'high'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : lead.priority.toLowerCase() === 'medium'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-slate-100 text-slate-700 border-slate-200'
-                  }`}
-                >
-                  {lead.priority} Priority
-                </span>
-              )}
+            {/* Phone call button */}
+            {lead.phone && (
+              <a
+                href={`tel:${lead.phone}`}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-semibold hover:bg-emerald-100 transition-colors shrink-0"
+                title={`Call ${lead.phone}`}
+              >
+                <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span>{lead.phone}</span>
+              </a>
+            )}
 
-              {/* Tap to call button */}
-              {lead.phone && (
-                <a
-                  href={`tel:${lead.phone}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md font-mono text-xs font-semibold hover:bg-emerald-100 transition-colors"
-                  title={`Call ${lead.phone}`}
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lead.phone}</span>
-                </a>
-              )}
-            </div>
+            {isArchived && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded-md text-xs font-semibold shrink-0">
+                <Archive className="w-3 h-3 text-amber-600" />
+                <span>Archived</span>
+              </span>
+            )}
           </div>
 
           {/* Action buttons at top right */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            {/* School ERP button for leads in School category */}
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
             {lead.category?.name.toLowerCase() === 'school' &&
               (lead.school ? (
                 <Link
                   to={`/school-erp/${lead.school.id}`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors shadow-2xs"
                 >
                   <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Open school</span>
@@ -342,30 +321,31 @@ export const LeadDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => moveToSchoolMutation.mutate()}
                   disabled={moveToSchoolMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
                 >
                   <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
                   <span>{moveToSchoolMutation.isPending ? 'Moving...' : 'Move to School ERP'}</span>
                 </button>
               ))}
 
-            {/* Record Contact button (hidden for archived leads) */}
             {!isArchived && (
               <button
+                type="button"
                 onClick={() => {
                   setEditingContact(null)
                   setIsRecordModalOpen(true)
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer shadow-2xs"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                <span>Record Contact</span>
+                <span>Record</span>
               </button>
             )}
 
             <button
+              type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
             >
               <Edit3 className="w-3.5 h-3.5 text-slate-600" />
               <span>Edit</span>
@@ -373,8 +353,9 @@ export const LeadDetailPage: React.FC = () => {
 
             {!isArchived ? (
               <button
+                type="button"
                 onClick={() => setShowArchiveConfirm(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-md transition-colors cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-md transition-colors cursor-pointer shadow-2xs"
               >
                 <Archive className="w-3.5 h-3.5 text-amber-600" />
                 <span>Archive</span>
@@ -382,16 +363,18 @@ export const LeadDetailPage: React.FC = () => {
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={() => restoreMutation.mutate()}
                   disabled={restoreMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
                   <span>{restoreMutation.isPending ? 'Restoring...' : 'Restore'}</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 rounded-md transition-colors cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 rounded-md transition-colors cursor-pointer shadow-2xs"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                   <span>Delete</span>
@@ -402,439 +385,345 @@ export const LeadDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Section Cards (Yaazhi Style) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 1. Contact Section Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-            <Phone className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Contact Details</h2>
-          </div>
+      {/* 2. ONE compact Lead Details Card */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <h2 className="text-[13px] font-semibold text-slate-900 mb-2.5">Lead Details</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Phone */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Phone Number
-              </span>
-              <div className="mt-1">
-                {lead.phone ? (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="text-sm font-semibold font-mono text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5"
-                  >
-                    <span>{lead.phone}</span>
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Emails
-              </span>
-              <div className="mt-1">
-                {lead.emails ? (
-                  <a
-                    href={`mailto:${lead.emails}`}
-                    className="text-sm font-semibold font-mono text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                    title={lead.emails}
-                  >
-                    {lead.emails}
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Website */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Website
-              </span>
-              <div className="mt-1">
-                {lead.website ? (
-                  <a
-                    href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5 truncate max-w-full"
-                    title={lead.website}
-                  >
-                    <span className="truncate">{lead.website.replace(/^https?:\/\//i, '')}</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Address */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100 sm:col-span-2">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Address
-              </span>
-              <div className="mt-1">
-                {lead.address ? (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-start gap-1.5"
-                    title="Open in Google Maps"
-                  >
-                    <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                    <span>{lead.address}</span>
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Business Info Section Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Business Information</h2>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {/* Maps Category */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100 col-span-2 sm:col-span-3">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Maps Scraper Category
-              </span>
-              <p className="text-sm font-semibold text-slate-900 mt-1 truncate">
-                {lead.mapsCategory || '—'}
-              </p>
-            </div>
-
-            {/* Rating and review count */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Rating & Reviews
-              </span>
-              <div className="text-sm font-semibold text-slate-900 mt-1 flex items-center gap-1">
-                {lead.reviewRating != null ? (
-                  <>
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                    <span>{lead.reviewRating}</span>
-                    <span className="text-xs font-normal text-slate-500">
-                      ({lead.reviewCount || 0})
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Priority Score */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Priority Score
-              </span>
-              <p className="text-sm font-semibold text-slate-900 mt-1 font-mono">
-                {lead.priorityScore != null ? lead.priorityScore : '—'}
-              </p>
-            </div>
-
-            {/* ERP Match */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                ERP Match
-              </span>
-              <p className="text-sm font-semibold text-slate-900 mt-1 truncate">
-                {lead.erpMatch || '—'}
-              </p>
-            </div>
-
-            {/* Has Website */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Has Website
-              </span>
-              <div className="text-sm font-semibold mt-1">
-                {lead.hasWebsite === true ? (
-                  <span className="text-emerald-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Yes
-                  </span>
-                ) : lead.hasWebsite === false ? (
-                  <span className="text-slate-600 flex items-center gap-1">
-                    <XCircle className="w-3.5 h-3.5 text-slate-400" /> No
-                  </span>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Needs Website */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Needs Website
-              </span>
-              <div className="text-sm font-semibold mt-1">
-                {lead.needsWebsite === true ? (
-                  <span className="text-blue-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Yes
-                  </span>
-                ) : lead.needsWebsite === false ? (
-                  <span className="text-slate-600 flex items-center gap-1">
-                    <XCircle className="w-3.5 h-3.5 text-slate-400" /> No
-                  </span>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-
-            {/* Needs ERP */}
-            <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block">
-                Needs ERP
-              </span>
-              <div className="text-sm font-semibold mt-1">
-                {lead.needsErp === true ? (
-                  <span className="text-blue-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> Yes
-                  </span>
-                ) : lead.needsErp === false ? (
-                  <span className="text-slate-600 flex items-center gap-1">
-                    <XCircle className="w-3.5 h-3.5 text-slate-400" /> No
-                  </span>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Tracking Section Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Tracking & Category</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Status: Read-Only pill (status changes only through contact logs) */}
-              <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-                <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block mb-1">
-                  Current Status (Read-only)
-                </span>
-                <div className="mt-1">
-                  {currentStatus ? (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
-                      style={{
-                        backgroundColor: `${statusColor}15`,
-                        borderColor: `${statusColor}40`,
-                        color: statusColor,
-                      }}
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColor }} />
-                      <span>{currentStatus.name}</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                      <span className="w-2 h-2 rounded-full bg-slate-400" />
-                      <span>Not called</span>
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  Status is derived automatically from the latest contact record.
-                </p>
-              </div>
-
-              {/* Category Dropdown */}
-              <div className="p-3 bg-slate-50/60 rounded-md border border-slate-100">
-                <label className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider block mb-1">
-                  Category
-                </label>
-                <select
-                  value={lead.categoryId || ''}
-                  onChange={(e) => {
-                    const val = e.target.value ? Number(e.target.value) : null
-                    updateMutation.mutate({ categoryId: val })
-                  }}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 mt-1 cursor-pointer"
-                >
-                  <option value="">Unassigned</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Record Info Section Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Record Information</h2>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-xs font-semibold text-slate-600">Created At</span>
-              <span className="text-xs font-medium text-slate-900 font-mono">
-                {new Date(lead.createdAt).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-xs font-semibold text-slate-600">Last Updated</span>
-              <span className="text-xs font-medium text-slate-900 font-mono">
-                {new Date(lead.updatedAt).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-slate-50/60 rounded-md border border-slate-100">
-              <span className="text-xs font-semibold text-slate-600">Import Batch File Name</span>
-              <span className="text-xs font-semibold text-slate-900 truncate max-w-[200px]" title={lead.batch?.fileName || 'Manual entry'}>
-                {lead.batch?.fileName || 'Manual entry'}
-              </span>
-            </div>
-
-            {lead.archivedAt && (
-              <div className="flex items-center justify-between p-3 bg-amber-50/60 rounded-md border border-amber-200">
-                <span className="text-xs font-semibold text-amber-800">Archived At</span>
-                <span className="text-xs font-medium text-amber-900 font-mono">
-                  {new Date(lead.archivedAt).toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 5. Contact History Card (styled like Yaazhi's Stock Movement & Audit History) */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs md:col-span-2">
-          <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-slate-500" />
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Contact History</h2>
-            </div>
-            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-xs font-semibold">
-              {contactLogs.length} {contactLogs.length === 1 ? 'record' : 'records'}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+          {/* 1. Phone */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Phone
             </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.phone ? (
+                <a
+                  href={`tel:${lead.phone}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                  title={lead.phone}
+                >
+                  {lead.phone}
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
           </div>
 
-          {contactLogs.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
-              No contacts logged yet.
+          {/* 2. Emails */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Emails
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.emails ? (
+                <a
+                  href={`mailto:${lead.emails}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                  title={lead.emails}
+                >
+                  {lead.emails}
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[120px]">
-                      Date
-                    </th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider w-[180px]">
-                      Status
-                    </th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider">
-                      Notes
-                    </th>
-                    {!isArchived && (
-                      <th className="px-4 py-2.5 font-semibold text-slate-600 uppercase tracking-wider text-right w-[80px]">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {contactLogs.map((log) => {
-                    const logStatusColor = log.status?.color || '#64748B'
+          </div>
 
-                    return (
-                      <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* Date */}
-                        <td className="px-4 py-3 whitespace-nowrap font-mono text-slate-700 font-medium">
-                          {formatDateShort(log.contactDate)}
-                          <span className="text-[10px] text-slate-400 block font-normal">
-                            {new Date(log.contactDate).toISOString().slice(0, 10)}
-                          </span>
-                        </td>
-
-                        {/* Status Pill */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {log.status ? (
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border"
-                              style={{
-                                backgroundColor: `${logStatusColor}15`,
-                                borderColor: `${logStatusColor}40`,
-                                color: logStatusColor,
-                              }}
-                            >
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: logStatusColor }}
-                              />
-                              <span>{log.status.name}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-
-                        {/* Notes */}
-                        <td className="px-4 py-3 text-slate-700 break-words whitespace-pre-wrap">
-                          {log.notes || <span className="text-slate-400 italic">No notes</span>}
-                        </td>
-
-                        {/* Actions (active leads only) */}
-                        {!isArchived && (
-                          <td className="px-4 py-3 whitespace-nowrap text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingContact(log)
-                                  setIsRecordModalOpen(true)
-                                }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors cursor-pointer"
-                                title="Edit contact record"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setContactToDelete(log)}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                title="Delete contact record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          {/* 3. Website */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Website
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.website ? (
+                <a
+                  href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 truncate max-w-full"
+                  title={lead.website}
+                >
+                  <span className="truncate">{lead.website.replace(/^https?:\/\//i, '')}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* 4. Address (spans 2 columns) */}
+          <div className="col-span-2 p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Address
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.address ? (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1.5 truncate max-w-full"
+                  title={lead.address}
+                >
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span className="truncate">{lead.address}</span>
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 5. Maps Category */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Maps Category
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate" title={lead.mapsCategory || ''}>
+              {lead.mapsCategory ? (
+                <span className="truncate block">{lead.mapsCategory}</span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 6. Rating & Reviews */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Rating & Reviews
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.reviewRating != null ? (
+                <span
+                  className="inline-flex items-center gap-1 truncate"
+                  title={`${lead.reviewRating} rating from ${lead.reviewCount || 0} reviews`}
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+                  <span>
+                    {lead.reviewRating} ★ ({lead.reviewCount || 0})
+                  </span>
+                </span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 7. Priority Score */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Priority Score
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate">
+              {lead.priorityScore != null ? (
+                <span>{lead.priorityScore}</span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 8. ERP Match */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              ERP Match
+            </span>
+            <div className="text-sm font-medium text-slate-900 mt-1 truncate" title={lead.erpMatch || ''}>
+              {lead.erpMatch ? (
+                <span className="truncate block">{lead.erpMatch}</span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 9. Has Website */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Has Website
+            </span>
+            <div className="text-sm font-medium mt-1 truncate">
+              {lead.hasWebsite === true ? (
+                <span className="text-emerald-700 inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Yes</span>
+                </span>
+              ) : lead.hasWebsite === false ? (
+                <span className="text-slate-600 inline-flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>No</span>
+                </span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 10. Needs Website */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Needs Website
+            </span>
+            <div className="text-sm font-medium mt-1 truncate">
+              {lead.needsWebsite === true ? (
+                <span className="text-blue-700 inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Yes</span>
+                </span>
+              ) : lead.needsWebsite === false ? (
+                <span className="text-slate-600 inline-flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>No</span>
+                </span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* 11. Needs ERP */}
+          <div className="p-2.5 rounded-[10px] bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+              Needs ERP
+            </span>
+            <div className="text-sm font-medium mt-1 truncate">
+              {lead.needsErp === true ? (
+                <span className="text-blue-700 inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Yes</span>
+                </span>
+              ) : lead.needsErp === false ? (
+                <span className="text-slate-600 inline-flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>No</span>
+                </span>
+              ) : (
+                <span className="text-slate-400 font-normal">—</span>
+              )}
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* 3. Contact History Card */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
+        <div className="border-b border-slate-100 pb-2.5 mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-slate-500" />
+            <h2 className="text-[13px] font-semibold text-slate-900">Contact History</h2>
+          </div>
+          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-xs font-medium">
+            {contactLogs.length} {contactLogs.length === 1 ? 'record' : 'records'}
+          </span>
+        </div>
+
+        {contactLogs.length === 0 ? (
+          <div className="p-6 text-center text-xs text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
+            No contacts logged yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-3.5 py-2 font-semibold text-slate-600 uppercase tracking-wider w-[120px]">
+                    Date
+                  </th>
+                  <th className="px-3.5 py-2 font-semibold text-slate-600 uppercase tracking-wider w-[160px]">
+                    Status
+                  </th>
+                  <th className="px-3.5 py-2 font-semibold text-slate-600 uppercase tracking-wider">
+                    Notes
+                  </th>
+                  {!isArchived && (
+                    <th className="px-3.5 py-2 font-semibold text-slate-600 uppercase tracking-wider text-right w-[70px]">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {contactLogs.map((log) => {
+                  const logStatusColor = log.status?.color || '#64748B'
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-3.5 py-2.5 whitespace-nowrap text-slate-700 font-medium">
+                        {formatDateShort(log.contactDate)}
+                      </td>
+                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                        {log.status ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border"
+                            style={{
+                              backgroundColor: `${logStatusColor}15`,
+                              borderColor: `${logStatusColor}40`,
+                              color: logStatusColor,
+                            }}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: logStatusColor }}
+                            />
+                            <span>{log.status.name}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5 text-slate-700 break-words whitespace-pre-wrap">
+                        {log.notes || <span className="text-slate-400 italic">No notes</span>}
+                      </td>
+                      {!isArchived && (
+                        <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingContact(log)
+                                setIsRecordModalOpen(true)
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors cursor-pointer"
+                              title="Edit contact record"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setContactToDelete(log)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete contact record"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Thin Muted Footer Line */}
+      <div className="text-xs text-slate-400 text-center py-2 px-1">
+        <span>Created {formatDateTimeIST(lead.createdAt)}</span>
+        <span className="mx-1.5">·</span>
+        <span>Updated {formatDateTimeIST(lead.updatedAt)}</span>
+        <span className="mx-1.5">·</span>
+        <span>Import: {lead.batch?.fileName || 'Manual entry'}</span>
+        {lead.archivedAt && (
+          <>
+            <span className="mx-1.5">·</span>
+            <span className="text-amber-600">Archived {formatDateTimeIST(lead.archivedAt)}</span>
+          </>
+        )}
       </div>
 
       {/* Edit Modal (AddLeadModal prefilled) */}
