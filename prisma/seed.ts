@@ -15,6 +15,15 @@ const DEFAULT_CATEGORIES = [
   { name: 'Boutique', sortOrder: 1 },
 ]
 
+const DEFAULT_SCHOOL_STAGES = [
+  { name: 'Contacted', color: '#1D4ED8', sortOrder: 0 },
+  { name: 'Meeting done', color: '#7C3AED', sortOrder: 1 },
+  { name: 'Demo given', color: '#2563EB', sortOrder: 2 },
+  { name: 'Proposal sent', color: '#CA8A04', sortOrder: 3 },
+  { name: 'Won', color: '#15803D', sortOrder: 4 },
+  { name: 'Lost', color: '#B91C1C', sortOrder: 5 },
+]
+
 async function main() {
   console.log('Seeding default statuses...')
   for (const s of DEFAULT_STATUSES) {
@@ -31,6 +40,15 @@ async function main() {
       where: { name: c.name },
       update: { sortOrder: c.sortOrder },
       create: { name: c.name, sortOrder: c.sortOrder },
+    })
+  }
+
+  console.log('Seeding default school stages...')
+  for (const st of DEFAULT_SCHOOL_STAGES) {
+    await prisma.schoolStage.upsert({
+      where: { name: st.name },
+      update: { color: st.color, sortOrder: st.sortOrder },
+      create: { name: st.name, color: st.color, sortOrder: st.sortOrder },
     })
   }
 

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../db.js'
-import { normalizePhone, makeDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
+import { normalizePhone, makeDedupeKey, makeSchoolDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
 import { isFutureDateIST, parseDateToMidnightUTC, formatDateShort } from '../../../lib/date.js'
 import { syncLeadStatus } from './contacts.js'
 
@@ -413,6 +413,9 @@ leadsRouter.get('/:id', async (req: Request, res: Response) => {
         status: true,
         category: true,
         batch: true,
+        school: {
+          select: { id: true, name: true },
+        },
         contactLogs: {
           orderBy: [
             { contactDate: 'desc' },
@@ -431,6 +434,76 @@ leadsRouter.get('/:id', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('Error fetching lead:', err)
     return res.status(500).json({ error: 'Failed to fetch lead' })
+  }
+})
+
+// POST /api/leads/:id/move-to-school-erp
+// Only for leads in the School category. Creates a school from the lead's title, phone and address and sets lead_id.
+// If one already exists for that lead, returns it.
+leadsRouter.post('/:id/move-to-school-erp', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  try {
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        school: true,
+      },
+    })
+
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    if (lead.category?.name.toLowerCase() !== 'school') {
+      return res.status(400).json({ error: 'Only leads in the School category can be moved to School ERP' })
+    }
+
+    // If one already exists for that lead, return it
+    if (lead.school) {
+      return res.json({ school: lead.school, alreadyExists: true })
+    }
+
+    const phoneNormalized = normalizePhone(lead.phone)
+    const dedupeKey = makeSchoolDedupeKey(lead.title, null, phoneNormalized)
+
+    // Check if school with dedupeKey already exists
+    const existingDedupe = await prisma.school.findUnique({
+      where: { dedupeKey },
+    })
+
+    if (existingDedupe) {
+      if (!existingDedupe.leadId) {
+        const updated = await prisma.school.update({
+          where: { id: existingDedupe.id },
+          data: { leadId: lead.id },
+        })
+        return res.json({ school: updated, linked: true })
+      }
+      return res.json({ school: existingDedupe, alreadyExists: true })
+    }
+
+    // Create new school
+    const newSchool = await prisma.school.create({
+      data: {
+        name: lead.title,
+        address: lead.address || null,
+        phone: lead.phone || null,
+        email: lead.emails || null,
+        website: lead.website || null,
+        notes: lead.remarks || null,
+        leadId: lead.id,
+        stageId: null,
+        dedupeKey,
+      },
+    })
+
+    return res.status(201).json({ school: newSchool })
+  } catch (err: any) {
+    console.error('Error moving lead to School ERP:', err)
+    return res.status(500).json({ error: 'Failed to move lead to School ERP' })
   }
 })
 

@@ -8,6 +8,11 @@ import {
   ReportData,
   ImportPreviewResult,
   ImportChunkResult,
+  SchoolStage,
+  SchoolContact,
+  SchoolMeeting,
+  School,
+  SchoolsResponse,
 } from '../types'
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
@@ -239,5 +244,154 @@ export const api = {
     if (params?.from) q.set('from', params.from)
     if (params?.to) q.set('to', params.to)
     return request(`/api/report?${q.toString()}`)
+  },
+
+  // School Stages
+  async getSchoolStages(): Promise<SchoolStage[]> {
+    return request('/api/school-stages')
+  },
+
+  async createSchoolStage(data: { name: string; color: string }): Promise<SchoolStage> {
+    return request('/api/school-stages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async updateSchoolStage(id: number, data: { name?: string; color?: string }): Promise<SchoolStage> {
+    return request(`/api/school-stages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async deleteSchoolStage(id: number): Promise<{ ok: boolean }> {
+    return request(`/api/school-stages/${id}`, { method: 'DELETE' })
+  },
+
+  async reorderSchoolStages(ids: number[]): Promise<{ ok: boolean }> {
+    return request('/api/school-stages/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ ids }),
+    })
+  },
+
+  // Schools
+  async getSchools(params?: {
+    search?: string
+    stageId?: string
+    area?: string
+    archived?: 'active' | 'archived'
+    page?: number
+    pageSize?: number
+  }): Promise<SchoolsResponse> {
+    const q = new URLSearchParams()
+    if (params?.search) q.set('search', params.search)
+    if (params?.stageId) q.set('stageId', params.stageId)
+    if (params?.area) q.set('area', params.area)
+    if (params?.archived) q.set('archived', params.archived)
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.pageSize) q.set('pageSize', String(params.pageSize))
+    return request(`/api/schools?${q.toString()}`)
+  },
+
+  async getSchoolAreas(): Promise<string[]> {
+    return request('/api/schools/areas')
+  },
+
+  async getSchool(id: number): Promise<School> {
+    return request(`/api/schools/${id}`)
+  },
+
+  async createSchool(
+    data: any
+  ): Promise<School> {
+    return request('/api/schools', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async updateSchool(id: number, data: Partial<School>): Promise<School> {
+    return request(`/api/schools/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async archiveSchool(id: number): Promise<School> {
+    return request(`/api/schools/${id}/archive`, { method: 'POST' })
+  },
+
+  async restoreSchool(id: number): Promise<School> {
+    return request(`/api/schools/${id}/restore`, { method: 'POST' })
+  },
+
+  async deleteSchool(
+    id: number
+  ): Promise<{ ok: boolean; deletedContactsCount?: number; deletedMeetingsCount?: number }> {
+    return request(`/api/schools/${id}`, { method: 'DELETE' })
+  },
+
+  // School Contacts
+  async getSchoolContacts(schoolId: number): Promise<SchoolContact[]> {
+    return request(`/api/schools/${schoolId}/contacts`)
+  },
+
+  async createSchoolContact(schoolId: number, data: Partial<SchoolContact>): Promise<SchoolContact> {
+    return request(`/api/schools/${schoolId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async updateSchoolContact(id: number, data: Partial<SchoolContact>): Promise<SchoolContact> {
+    return request(`/api/school-contacts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async deleteSchoolContact(id: number): Promise<{ ok: boolean }> {
+    return request(`/api/school-contacts/${id}`, { method: 'DELETE' })
+  },
+
+  // School Meetings
+  async getSchoolMeetings(schoolId: number): Promise<SchoolMeeting[]> {
+    return request(`/api/schools/${schoolId}/meetings`)
+  },
+
+  async createSchoolMeeting(
+    schoolId: number,
+    data: {
+      meetingDate: string
+      meetingTime?: string | null
+      type: string
+      locationName?: string | null
+      contactId?: number | null
+      stageId: number
+      notes?: string | null
+    }
+  ): Promise<SchoolMeeting> {
+    return request(`/api/schools/${schoolId}/meetings`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async updateSchoolMeeting(id: number, data: Partial<SchoolMeeting>): Promise<SchoolMeeting> {
+    return request(`/api/school-meetings/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async deleteSchoolMeeting(id: number): Promise<{ ok: boolean }> {
+    return request(`/api/school-meetings/${id}`, { method: 'DELETE' })
+  },
+
+  // Leads Integration
+  async moveToSchoolErp(leadId: number): Promise<{ school: School; alreadyExists?: boolean; linked?: boolean }> {
+    return request(`/api/leads/${leadId}/move-to-school-erp`, { method: 'POST' })
   },
 }

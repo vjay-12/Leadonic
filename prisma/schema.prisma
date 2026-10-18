@@ -72,6 +72,7 @@ model Lead {
   batch           ImportBatch?  @relation(fields: [batchId], references: [id])
   archivedAt      DateTime?     @map("archived_at")
   contactLogs     ContactLog[]
+  school          School?
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
@@ -96,3 +97,82 @@ model ContactLog {
   @@index([leadId, contactDate])
   @@map("contact_logs")
 }
+
+model SchoolStage {
+  id        Int             @id @default(autoincrement())
+  name      String          @unique
+  color     String          @default("#64748B")
+  sortOrder Int             @default(0) @map("sort_order")
+  createdAt DateTime        @default(now()) @map("created_at")
+  schools   School[]
+  meetings  SchoolMeeting[]
+
+  @@map("school_stages")
+}
+
+model School {
+  id              Int             @id @default(autoincrement())
+  name            String
+  area            String?
+  address         String?
+  phone           String?
+  email           String?
+  website         String?
+  studentStrength Int?            @map("student_strength")
+  notes           String?         @db.Text
+  stageId         Int?            @map("stage_id")
+  stage           SchoolStage?    @relation(fields: [stageId], references: [id])
+  leadId          Int?            @unique @map("lead_id")
+  lead            Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  dedupeKey       String          @unique @map("dedupe_key")
+  archivedAt      DateTime?       @map("archived_at")
+  contacts        SchoolContact[]
+  meetings        SchoolMeeting[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@index([stageId])
+  @@index([area])
+  @@index([archivedAt])
+  @@map("schools")
+}
+
+model SchoolContact {
+  id        Int             @id @default(autoincrement())
+  schoolId  Int             @map("school_id")
+  school    School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name      String
+  role      String?
+  phone     String?
+  email     String?
+  notes     String?         @db.Text
+  isPrimary Boolean         @default(false) @map("is_primary")
+  meetings  SchoolMeeting[]
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@index([schoolId])
+  @@map("school_contacts")
+}
+
+model SchoolMeeting {
+  id           Int            @id @default(autoincrement())
+  schoolId     Int            @map("school_id")
+  school       School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  meetingDate  DateTime       @map("meeting_date") @db.Date
+  meetingTime  String?        @map("meeting_time")
+  type         String
+  locationName String?        @map("location_name")
+  contactId    Int?           @map("contact_id")
+  contact      SchoolContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  stageId      Int            @map("stage_id")
+  stage        SchoolStage    @relation(fields: [stageId], references: [id])
+  notes        String?        @db.Text
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@index([schoolId, meetingDate])
+  @@index([stageId])
+  @@map("school_meetings")
+}
+

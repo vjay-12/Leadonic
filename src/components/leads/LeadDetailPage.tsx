@@ -28,6 +28,7 @@ import {
   PhoneCall,
   History,
   Pencil,
+  GraduationCap,
 } from 'lucide-react'
 
 export const LeadDetailPage: React.FC = () => {
@@ -148,6 +149,22 @@ export const LeadDetailPage: React.FC = () => {
     },
     onError: (err: any) => {
       toastError(err.message || 'Failed to delete contact log')
+    },
+  })
+
+  // Move to School ERP mutation
+  const moveToSchoolMutation = useMutation({
+    mutationFn: () => api.moveToSchoolErp(leadId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] })
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      success(res.alreadyExists ? 'School already exists for this lead' : 'Moved to School ERP')
+      if (res.school?.id) {
+        navigate(`/school-erp/${res.school.id}`)
+      }
+    },
+    onError: (err: any) => {
+      toastError(err.message || 'Failed to move to School ERP')
     },
   })
 
@@ -310,6 +327,28 @@ export const LeadDetailPage: React.FC = () => {
 
           {/* Action buttons at top right */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {/* School ERP button for leads in School category */}
+            {lead.category?.name.toLowerCase() === 'school' &&
+              (lead.school ? (
+                <Link
+                  to={`/school-erp/${lead.school.id}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors shadow-xs"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Open school</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => moveToSchoolMutation.mutate()}
+                  disabled={moveToSchoolMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{moveToSchoolMutation.isPending ? 'Moving...' : 'Move to School ERP'}</span>
+                </button>
+              ))}
+
             {/* Record Contact button (hidden for archived leads) */}
             {!isArchived && (
               <button

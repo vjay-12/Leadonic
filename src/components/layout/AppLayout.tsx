@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, GraduationCap, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 export const AppLayout: React.FC = () => {
@@ -11,6 +11,7 @@ export const AppLayout: React.FC = () => {
   const navItems = [
     { label: 'Dashboard', to: '/', icon: LayoutDashboard },
     { label: 'Leads', to: '/leads', icon: Users },
+    { label: 'School ERP', to: '/school-erp', icon: GraduationCap },
     { label: 'Report', to: '/report', icon: BarChart3 },
     { label: 'Settings', to: '/settings', icon: Settings },
   ]

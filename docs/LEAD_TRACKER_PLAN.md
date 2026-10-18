@@ -391,19 +391,120 @@ Commit to `main` after each item. Tick the box when done.
 - [x] 9. Report and CSV exports
 - [x] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
 - [x] 11. Leads table optimization (single-row fixed layout, responsive cards), Lead detail page (`/leads/:id`) matching Yaazhi style, Archive-before-delete workflow (schema migration, API endpoints, import check, UI)
-- [ ] 12. Contact Recording: ContactLog schema & Neon migration, backfill existing leads, status derived from latest log, contact API endpoints, IST date validation, table layout with Record button & latest note/last contact, Record Contact dialog, Contact History card on detail page, and Contacted Today dashboard card.
+- [x] 12. Contact Recording: ContactLog schema & Neon migration, backfill existing leads, status derived from latest log, contact API endpoints, IST date validation, table layout with Record button & latest note/last contact, Record Contact dialog, Contact History card on detail page, and Contacted Today dashboard card.
+- [ ] 13. School ERP Module:
+  - Database: `school_stages`, `schools`, `school_contacts`, `school_meetings` with Neon migration & seed stages.
+  - Server Rules: stage read-only derived from latest meeting (`meeting_date desc, meeting_time desc, created_at desc`), default "Not started"; reject future dates (IST); reject writes on archived schools; primary contact lifecycle management; dedupe key `p:phone` or `t:name|area` (409); archive before delete (409); stage delete blocked when in use (409).
+  - API: `/api/schools`, `/api/school-contacts`, `/api/school-meetings`, `/api/school-stages`, `POST /api/leads/:id/move-to-school-erp`.
+  - UI:
+    - Sidebar with "School ERP" (`GraduationCap` icon).
+    - School ERP List Page (table-layout: fixed, 8 columns: School 24%, Area 12%, Primary contact 21%, Phone 11%, Stage 11%, Last meeting 9%, Record 12%; mobile cards; toolbar).
+    - School Detail Page (`/school-erp/:id`): info card, contacts card (with role suggestions and make primary), meeting history card, record meeting action, archive/restore/delete.
+    - Record Meeting Dialog: inline "+ New contact", type, date, time, location, met with, stage, notes.
+    - Leads Integration: "Move to School ERP" and "Open school" buttons on School category leads.
+    - Settings: "School stages" tab.
 
-## 10. Acceptance test (run before saying "done")
+---
 
-1. Log in with the password. Settings shows the 5 statuses and 2 categories.
+## 10. School ERP Module Specifications
+
+### 10.1 Sidebar
+- Navigation items: Dashboard, Leads, School ERP (`GraduationCap` icon), Report, Settings.
+
+### 10.2 Database Schema (Prisma + Neon)
+- `school_stages`:
+  - `id`: Int autoincrement PK
+  - `name`: String unique (case-insensitive)
+  - `color`: String default `#64748B`
+  - `sort_order`: Int default 0
+  - Seed stages: Contacted (`#1D4ED8`), Meeting done (`#7C3AED`), Demo given (`#2563EB`), Proposal sent (`#CA8A04`), Won (`#15803D`), Lost (`#B91C1C`).
+- `schools`:
+  - `id`: Int autoincrement PK
+  - `name`: String (required)
+  - `area`: String (optional/nullable)
+  - `address`: String (optional/nullable)
+  - `phone`: String (optional/nullable)
+  - `email`: String (optional/nullable)
+  - `website`: String (optional/nullable)
+  - `student_strength`: Int (optional/nullable)
+  - `notes`: String (optional/nullable)
+  - `stage_id`: nullable FK to `school_stages`
+  - `lead_id`: nullable FK to `leads`
+  - `dedupe_key`: String unique (`p:phone` or `t:lower(name)|lower(area)`)
+  - `archived_at`: DateTime nullable
+  - `created_at`, `updated_at`: DateTime
+- `school_contacts`:
+  - `id`: Int autoincrement PK
+  - `school_id`: FK to `schools` (`onDelete: Cascade`)
+  - `name`: String (required)
+  - `role`: String (optional)
+  - `phone`: String (optional)
+  - `email`: String (optional)
+  - `notes`: String (optional)
+  - `is_primary`: Boolean default false
+  - `created_at`, `updated_at`: DateTime
+- `school_meetings`:
+  - `id`: Int autoincrement PK
+  - `school_id`: FK to `schools` (`onDelete: Cascade`)
+  - `meeting_date`: DATE (`@db.Date`, required)
+  - `meeting_time`: String (optional, e.g. "14:30")
+  - `type`: String (`Call` | `Visit` | `Demo` | `Follow-up`)
+  - `location_name`: String (optional)
+  - `contact_id`: nullable FK to `school_contacts` (`onDelete: SetNull`)
+  - `stage_id`: required FK to `school_stages`
+  - `notes`: String (optional)
+  - `created_at`, `updated_at`: DateTime
+  - Index on `(school_id, meeting_date)`
+
+### 10.3 Business Rules (Server Enforced)
+1. **Stage Rule**: A school's stage is read-only. `PATCH /api/schools/:id` ignores `stage_id`. After any meeting is created, edited or deleted, the school's stage is atomically set to the stage of its latest meeting (`meeting_date desc, meeting_time desc, created_at desc`). If no meetings remain, stage is set to `null` ("Not started").
+2. **IST Date Validation**: Reject future meeting dates based on `Asia/Kolkata` timezone today.
+3. **Archived Protection**: Reject creating meetings, contacts, and editing archived schools.
+4. **Primary Contact Lifecycle**:
+   - The first contact added is automatically primary (`is_primary = true`).
+   - Setting a contact as primary unsets any previous primary contact.
+   - Deleting the primary contact automatically promotes the oldest remaining contact (`orderBy: { createdAt: 'asc' }`).
+5. **Deduplication**: Duplicate `dedupe_key` returns HTTP 409 with `{ error: 'A school with this phone or name/area already exists', existingId }`.
+6. **Archive before Delete**: `DELETE /api/schools/:id` is blocked for active schools (409 "Archive this school first.") and allowed only for archived schools. Deletes cascade contacts and meetings; confirmation shows item counts.
+7. **Stage Protection**: Cannot delete a stage used by any school or meeting (HTTP 409).
+
+### 10.4 API Routes
+- `GET /api/schools?search&stageId&area&archived=active|archived&page&pageSize`
+- `POST /api/schools` (optional `primaryContact` object)
+- `GET /api/schools/:id`
+- `PATCH /api/schools/:id`
+- `POST /api/schools/:id/archive` & `POST /api/schools/:id/restore`
+- `DELETE /api/schools/:id`
+- `GET /api/schools/areas`
+- `GET /api/schools/:id/contacts` & `POST /api/schools/:id/contacts`
+- `PATCH /api/school-contacts/:id` & `DELETE /api/school-contacts/:id`
+- `GET /api/schools/:id/meetings` & `POST /api/schools/:id/meetings`
+- `PATCH /api/school-meetings/:id` & `DELETE /api/school-meetings/:id`
+- `GET /api/school-stages`, `POST`, `PATCH /:id`, `DELETE /:id`, `PUT /reorder`
+- `POST /api/leads/:id/move-to-school-erp`
+
+### 10.5 UI Components & Pages
+- **School ERP List**: 8 columns (School 24%, Area 12%, Primary contact 21%, Phone 11%, Stage 11%, Last meeting 9%, Record 12%), `table-layout: fixed`, search/stage/area/active filters, Add School modal.
+- **School Detail Page**: Header card, Info card, Contacts card with role suggestions (`Principal`, `Correspondent`, `Administrator`, `Accountant`, `Teacher`, `Other`), Meeting History card, Archive/Restore/Delete.
+- **Record Meeting Dialog**: Inline "+ New contact", date (IST today max), time, type, location, met with, stage, notes.
+- **Leads Integration**: "Move to School ERP" on leads in School category, converts and links to School ERP.
+- **Settings**: "School stages" tab.
+
+---
+
+## 11. Acceptance test (run before saying "done")
+
+1. Log in with the password. Settings shows the 5 statuses and 2 categories, plus School stages.
 2. Add a category "Salon" in Settings, then rename it, then try deleting "Boutique" after importing leads into it (blocked with a message).
 3. Import the sample file, choosing "Boutique". The dry run shows counts, the import adds the rows, and importing the **same file again** adds 0 and skips all as duplicates.
 4. In Leads, change a status and a category from the dropdowns and edit a remark. Refresh the page and the changes persist.
 5. Add a lead manually. Adding the same phone number again shows the duplicate message.
 6. Filter by status, category and priority. Search by phone and by title.
 7. Dashboard counts match the Leads table. Report matches too, and the CSV downloads.
-8. Works on a phone-width screen. Logged out users cannot call any API route.
+8. School ERP: Add school with primary contact, record meeting updating stage, reject future meeting date, lead "Move to School ERP" workflow, archive before delete, and School stages settings.
+9. Works on a phone-width screen. Logged out users cannot call any API route.
 
-## 11. Out of scope for now
+## 12. Out of scope for now
 
 Call queue, follow-up dates, tasks, message templates, lead scoring, activity timeline, multiple users and roles, quotes, invoices and payments. We will add these later.
+

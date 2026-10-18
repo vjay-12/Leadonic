@@ -41,11 +41,82 @@ export interface Lead {
   latestNote?: string | null
   lastContactDate?: string | null
   contactLogs?: ContactLog[]
+  school?: { id: number; name: string } | null
   createdAt: string
   updatedAt: string
   status?: LeadStatus | null
   category?: LeadCategory | null
   batch?: { id: number; fileName: string; createdAt: string } | null
+}
+
+export interface SchoolStage {
+  id: number
+  name: string
+  color: string
+  sortOrder: number
+  createdAt: string
+  schoolCount: number
+  meetingCount?: number
+}
+
+export interface SchoolContact {
+  id: number
+  schoolId: number
+  name: string
+  role: string | null
+  phone: string | null
+  email: string | null
+  notes: string | null
+  isPrimary: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SchoolMeeting {
+  id: number
+  schoolId: number
+  meetingDate: string
+  meetingTime: string | null
+  type: 'Call' | 'Visit' | 'Demo' | 'Follow-up'
+  locationName: string | null
+  contactId: number | null
+  stageId: number
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+  stage?: SchoolStage
+  contact?: SchoolContact | null
+}
+
+export interface School {
+  id: number
+  name: string
+  area: string | null
+  address: string | null
+  phone: string | null
+  email: string | null
+  website: string | null
+  studentStrength: number | null
+  notes: string | null
+  stageId: number | null
+  leadId: number | null
+  dedupeKey: string
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  stage?: SchoolStage | null
+  lead?: { id: number; title: string; phone?: string | null } | null
+  primaryContact?: { id?: number; name: string; role?: string | null; phone?: string | null } | null
+  lastMeetingDate?: string | null
+  contacts?: SchoolContact[]
+  meetings?: SchoolMeeting[]
+}
+
+export interface SchoolsResponse {
+  items: School[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export interface ContactLog {

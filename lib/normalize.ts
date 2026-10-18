@@ -17,6 +17,16 @@ export function makeDedupeKey(
   return `t:${title.trim().toLowerCase()}|${(address ?? "").trim().toLowerCase()}`;
 }
 
+/** One key per school: "p:" + phone, or "t:" + lower(name) + "|" + lower(area) when there is no phone */
+export function makeSchoolDedupeKey(
+  name: string,
+  area: string | null | undefined,
+  phoneNormalized: string | null
+): string {
+  if (phoneNormalized) return `p:${phoneNormalized}`;
+  return `t:${name.trim().toLowerCase()}|${(area ?? "").trim().toLowerCase()}`;
+}
+
 export function parseBool(v: unknown): boolean | null {
   if (typeof v === "boolean") return v;
   if (v == null || v === "") return null;

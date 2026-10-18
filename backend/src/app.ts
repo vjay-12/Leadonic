@@ -11,6 +11,10 @@ import { leadsRouter } from './routes/leads.js'
 import { importRouter } from './routes/import.js'
 import { dashboardRouter } from './routes/dashboard.js'
 import { reportRouter } from './routes/report.js'
+import { schoolStagesRouter } from './routes/schoolStages.js'
+import { schoolsRouter } from './routes/schools.js'
+import { schoolContactsRouter } from './routes/schoolContacts.js'
+import { schoolMeetingsRouter } from './routes/schoolMeetings.js'
 import { requireAuth } from './auth.js'
 
 dotenv.config()
@@ -46,6 +50,10 @@ app.use('/api/lead-categories', requireAuth, categoriesRouter)
 app.use('/api/contacts', requireAuth, contactsRouter)
 app.use('/api/leads/import', requireAuth, importRouter)
 app.use('/api/leads', requireAuth, leadsRouter)
+app.use('/api/school-stages', requireAuth, schoolStagesRouter)
+app.use('/api/schools', requireAuth, schoolsRouter)
+app.use('/api/school-contacts', requireAuth, schoolContactsRouter)
+app.use('/api/school-meetings', requireAuth, schoolMeetingsRouter)
 app.use('/api/dashboard', requireAuth, dashboardRouter)
 app.use('/api/report', requireAuth, reportRouter)
 
