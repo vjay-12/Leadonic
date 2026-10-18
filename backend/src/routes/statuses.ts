@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { prisma } from '../db'
+import { prisma } from '../db.js'
 
 export const statusesRouter = Router()
 

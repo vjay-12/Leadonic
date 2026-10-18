@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { createSessionToken, setSessionCookie, clearSessionCookie, requireAuth } from '../auth'
+import { createSessionToken, setSessionCookie, clearSessionCookie, requireAuth } from '../auth.js'
 
 export const authRouter = Router()
 

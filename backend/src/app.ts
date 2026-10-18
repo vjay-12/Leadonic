@@ -2,14 +2,15 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
-import { authRouter } from './routes/auth'
-import { statusesRouter } from './routes/statuses'
-import { categoriesRouter } from './routes/categories'
-import { leadsRouter } from './routes/leads'
-import { importRouter } from './routes/import'
-import { dashboardRouter } from './routes/dashboard'
-import { reportRouter } from './routes/report'
-import { requireAuth } from './auth'
+import { prisma } from './db.js'
+import { authRouter } from './routes/auth.js'
+import { statusesRouter } from './routes/statuses.js'
+import { categoriesRouter } from './routes/categories.js'
+import { leadsRouter } from './routes/leads.js'
+import { importRouter } from './routes/import.js'
+import { dashboardRouter } from './routes/dashboard.js'
+import { reportRouter } from './routes/report.js'
+import { requireAuth } from './auth.js'
 
 dotenv.config()
 
@@ -22,9 +23,20 @@ app.use(express.json({ limit: '10mb' }))
 // Public auth endpoints
 app.use('/api/auth', authRouter)
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() })
+// Health check with database connection check
+app.get('/api/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok', database: 'connected', time: new Date().toISOString() })
+  } catch (err: any) {
+    console.error('[HEALTH CHECK FAILED] Database error:', err)
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      error: err?.message || 'Database error',
+      time: new Date().toISOString(),
+    })
+  }
 })
 
 // Protected API routes
@@ -35,9 +47,9 @@ app.use('/api/leads', requireAuth, leadsRouter)
 app.use('/api/dashboard', requireAuth, dashboardRouter)
 app.use('/api/report', requireAuth, reportRouter)
 
-// Global error handler
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Unhandled error:', err)
+// Global error handler with server-side logging
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(`[API ERROR] ${req.method} ${req.originalUrl || req.url}:`, err)
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' })
 })
 

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { prisma } from '../db'
-import { normalizePhone, makeDedupeKey, parseBool, parseNum } from '../../../lib/normalize'
+import { prisma } from '../db.js'
+import { normalizePhone, makeDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
 
 export const leadsRouter = Router()
 

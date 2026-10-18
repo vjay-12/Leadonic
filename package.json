@@ -8,7 +8,7 @@
     "dev:server": "tsx watch backend/src/server.ts",
     "dev:client": "vite",
     "build": "prisma generate && vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.server.json --noEmit",
     "lint": "oxlint",
     "preview": "vite preview",
     "prisma:generate": "prisma generate",
