@@ -275,7 +275,7 @@ leadsRouter.post('/', async (req: Request, res: Response) => {
 
 // PATCH /api/leads/:id
 leadsRouter.patch('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   const parsed = UpdateLeadSchema.safeParse(req.body)
@@ -353,7 +353,7 @@ leadsRouter.patch('/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/leads/:id
 leadsRouter.delete('/:id', async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10)
+  const id = parseInt(req.params.id as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   try {
