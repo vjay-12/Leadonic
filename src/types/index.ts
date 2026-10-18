@@ -37,10 +37,12 @@ export interface Lead {
   statusId: number | null
   categoryId: number | null
   batchId: number | null
+  archivedAt: string | null
   createdAt: string
   updatedAt: string
   status?: LeadStatus | null
   category?: LeadCategory | null
+  batch?: { id: number; fileName: string; createdAt: string } | null
 }
 
 export interface LeadsResponse {
@@ -76,12 +78,14 @@ export interface ReportData {
 export interface ImportPreviewResult {
   willAdd: number
   duplicates: number
+  skippedArchivedCount?: number
   errors: { row: number; reason: string }[]
 }
 
 export interface ImportChunkResult {
   added: number
   skipped: number
+  skippedArchivedCount?: number
   errors: { row: number; reason: string }[]
   batchId: number
 }

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { Lead } from '../../types'
 import { AddLeadModal } from './AddLeadModal'
-import { LeadSidePanel } from './LeadSidePanel'
 import { ImportWizardDialog } from './ImportWizardDialog'
 import {
   Search,
@@ -15,11 +15,11 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  ExternalLink,
   ChevronDown,
 } from 'lucide-react'
 
 export const LeadsView: React.FC = () => {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
 
@@ -29,6 +29,7 @@ export const LeadsView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+  const [archivedFilter, setArchivedFilter] = useState<'active' | 'archived'>('active')
   const [page, setPage] = useState(1)
   const pageSize = 50
 
@@ -44,8 +45,6 @@ export const LeadsView: React.FC = () => {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
 
   // Fetch Statuses & Categories
   const { data: statuses = [] } = useQuery({
@@ -59,6 +58,7 @@ export const LeadsView: React.FC = () => {
   })
 
   // Fetch Leads
+  const queryFilters = { search, statusFilter, categoryFilter, priorityFilter, archivedFilter, page }
   const {
     data: leadsData,
     isLoading,
@@ -66,13 +66,14 @@ export const LeadsView: React.FC = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['leads', { search, statusFilter, categoryFilter, priorityFilter, page }],
+    queryKey: ['leads', queryFilters],
     queryFn: () =>
       api.getLeads({
         search,
         statusId: statusFilter,
         categoryId: categoryFilter,
         priority: priorityFilter,
+        archived: archivedFilter,
         page,
         pageSize,
         sort: 'createdAt:desc',
@@ -84,7 +85,7 @@ export const LeadsView: React.FC = () => {
     mutationFn: ({ id, data }: { id: number; data: Partial<Lead> }) => api.updateLead(id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['leads'] })
-      const queryKey = ['leads', { search, statusFilter, categoryFilter, priorityFilter, page }]
+      const queryKey = ['leads', queryFilters]
       const previous = queryClient.getQueryData(queryKey)
 
       queryClient.setQueryData(queryKey, (old: any) => {
@@ -93,12 +94,14 @@ export const LeadsView: React.FC = () => {
           ...old,
           items: old.items.map((lead: Lead) => {
             if (lead.id === id) {
-              const updatedStatus = data.statusId !== undefined
-                ? statuses.find((s) => s.id === data.statusId) || null
-                : lead.status
-              const updatedCategory = data.categoryId !== undefined
-                ? categories.find((c) => c.id === data.categoryId) || null
-                : lead.category
+              const updatedStatus =
+                data.statusId !== undefined
+                  ? statuses.find((s) => s.id === data.statusId) || null
+                  : lead.status
+              const updatedCategory =
+                data.categoryId !== undefined
+                  ? categories.find((c) => c.id === data.categoryId) || null
+                  : lead.category
               return {
                 ...lead,
                 ...data,
@@ -119,10 +122,13 @@ export const LeadsView: React.FC = () => {
       }
       toastError(err.message || 'Failed to update lead')
     },
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['statuses'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
+      if (updated?.id) {
+        queryClient.setQueryData(['lead', updated.id], updated)
+      }
       success('Saved')
     },
   })
@@ -156,6 +162,7 @@ export const LeadsView: React.FC = () => {
     if (statusFilter) q.set('statusId', statusFilter)
     if (categoryFilter) q.set('categoryId', categoryFilter)
     if (priorityFilter) q.set('priority', priorityFilter)
+    q.set('archived', archivedFilter)
     window.location.href = `/api/leads/export.csv?${q.toString()}`
   }
 
@@ -214,6 +221,19 @@ export const LeadsView: React.FC = () => {
           />
         </div>
 
+        {/* Active / Archived Filter */}
+        <select
+          value={archivedFilter}
+          onChange={(e) => {
+            setArchivedFilter(e.target.value as 'active' | 'archived')
+            setPage(1)
+          }}
+          className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        >
+          <option value="active">Active Leads</option>
+          <option value="archived">Archived Leads</option>
+        </select>
+
         {/* Status Filter */}
         <select
           value={statusFilter}
@@ -265,7 +285,7 @@ export const LeadsView: React.FC = () => {
         </select>
 
         {/* Clear Filters button */}
-        {(searchInput || statusFilter || categoryFilter || priorityFilter) && (
+        {(searchInput || statusFilter || categoryFilter || priorityFilter || archivedFilter !== 'active') && (
           <button
             onClick={() => {
               setSearchInput('')
@@ -273,16 +293,17 @@ export const LeadsView: React.FC = () => {
               setStatusFilter('')
               setCategoryFilter('')
               setPriorityFilter('')
+              setArchivedFilter('active')
               setPage(1)
             }}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 px-2 py-1.5"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 px-2 py-1.5 cursor-pointer"
           >
             Reset
           </button>
         )}
       </div>
 
-      {/* Main Leads Table */}
+      {/* Main Container */}
       <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="p-12 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
@@ -295,121 +316,314 @@ export const LeadsView: React.FC = () => {
             <p className="text-xs text-slate-500 mb-3">{(error as any)?.message}</p>
             <button
               onClick={() => refetch()}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium cursor-pointer"
             >
               Retry
             </button>
           </div>
         ) : leads.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-base font-semibold text-slate-900 mb-1">No leads found</p>
+            <p className="text-base font-semibold text-slate-900 mb-1">
+              {archivedFilter === 'archived' ? 'No archived leads' : 'No leads found'}
+            </p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
               {search || statusFilter || categoryFilter || priorityFilter
                 ? 'Try adjusting your search criteria or filters.'
+                : archivedFilter === 'archived'
+                ? 'Archived leads will appear here when you archive them.'
                 : 'Import a spreadsheet or add your first lead to get started.'}
             </p>
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded"
-              >
-                Add Lead
-              </button>
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded hover:bg-slate-200"
-              >
-                Import Excel
-              </button>
-            </div>
+            {archivedFilter === 'active' && (
+              <div className="flex justify-center gap-2">
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded cursor-pointer"
+                >
+                  Add Lead
+                </button>
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded hover:bg-slate-200 cursor-pointer"
+                >
+                  Import Excel
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-xs">
-              <thead className="bg-slate-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Phone
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider min-w-[170px]">
-                    Status
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider min-w-[200px]">
-                    Remarks
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Rating
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Website
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Address
-                  </th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
-                    Emails
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {leads.map((lead) => {
-                  const currentStatus = lead.status
-                  const statusBg = currentStatus ? currentStatus.color : '#94A3B8'
+          <>
+            {/* Desktop Table (>= 768px): fixed 6 columns, no horizontal scroll at >= 1280px */}
+            <div className="hidden md:block w-full">
+              <table className="w-full table-fixed divide-y divide-slate-200 text-xs">
+                <colgroup>
+                  <col className="w-[26%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[8%]" />
+                </colgroup>
+                <thead className="bg-slate-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Remarks
+                    </th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                      Priority
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {leads.map((lead) => {
+                    const currentStatus = lead.status
+                    const statusBg = currentStatus ? currentStatus.color : '#94A3B8'
 
-                  return (
-                    <tr
-                      key={lead.id}
-                      onClick={() => {
-                        setSelectedLead(lead)
-                        setIsSidePanelOpen(true)
-                      }}
-                      className="hover:bg-blue-50/40 cursor-pointer transition-colors"
-                    >
-                      {/* Title */}
-                      <td className="px-4 py-2.5 font-semibold text-slate-900 max-w-[200px] truncate">
-                        {lead.title}
-                      </td>
-
-                      {/* Phone */}
-                      <td
-                        className="px-3 py-2.5 whitespace-nowrap text-slate-600"
-                        onClick={(e) => e.stopPropagation()}
+                    return (
+                      <tr
+                        key={lead.id}
+                        tabIndex={0}
+                        onClick={() => navigate(`/leads/${lead.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            navigate(`/leads/${lead.id}`)
+                          }
+                        }}
+                        className="hover:bg-blue-50/40 focus:bg-blue-50/50 cursor-pointer transition-colors outline-none"
                       >
-                        {lead.phone ? (
-                          <a
-                            href={`tel:${lead.phone}`}
-                            className="inline-flex items-center gap-1 font-mono text-blue-600 hover:text-blue-800 hover:underline"
-                            title={`Call ${lead.phone}`}
+                        {/* 1. Title: single line with ellipsis, full text on hover */}
+                        <td className="px-4 py-2.5 font-semibold text-slate-900 truncate" title={lead.title}>
+                          <span className="truncate block">{lead.title}</span>
+                        </td>
+
+                        {/* 2. Phone: does NOT trigger row click */}
+                        <td
+                          className="px-3 py-2.5 whitespace-nowrap text-slate-600 font-mono truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {lead.phone ? (
+                            <a
+                              href={`tel:${lead.phone}`}
+                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline truncate max-w-full"
+                              title={`Call ${lead.phone}`}
+                            >
+                              <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                              <span className="truncate">{lead.phone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        {/* 3. Category: compact select, does NOT trigger row click */}
+                        <td
+                          className="px-3 py-2.5 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <select
+                            value={lead.categoryId || ''}
+                            onChange={(e) => {
+                              const val = e.target.value ? Number(e.target.value) : null
+                              handleCategoryChange(lead.id, val)
+                            }}
+                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
                           >
-                            <Phone className="w-3 h-3 text-blue-500" />
-                            <span>{lead.phone}</span>
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
+                            <option value="">Unassigned</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
 
-                      {/* Category (inline select dropdown) */}
-                      <td
-                        className="px-3 py-2.5 whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                        {/* 4. Status: compact pill dropdown, does NOT trigger row click */}
+                        <td
+                          className="px-3 py-2.5 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="relative inline-block w-full">
+                            <select
+                              value={lead.statusId || ''}
+                              onChange={(e) => {
+                                const val = e.target.value ? Number(e.target.value) : null
+                                handleStatusChange(lead.id, val)
+                              }}
+                              style={{
+                                backgroundColor: `${statusBg}15`,
+                                borderColor: `${statusBg}40`,
+                                color: statusBg,
+                              }}
+                              className="w-full appearance-none font-semibold text-xs rounded-full pl-2.5 pr-6 py-0.5 border truncate transition-colors cursor-pointer focus:outline-none focus:ring-1"
+                            >
+                              <option value="" className="text-slate-700 bg-white">
+                                Not called
+                              </option>
+                              {statuses.map((s) => (
+                                <option key={s.id} value={s.id} className="text-slate-700 bg-white">
+                                  {s.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              className="w-3 h-3 absolute right-2 top-1.5 pointer-events-none"
+                              style={{ color: statusBg }}
+                            />
+                          </div>
+                        </td>
+
+                        {/* 5. Remarks: single line with ellipsis, editable, does NOT trigger row click */}
+                        <td
+                          className="px-3 py-2.5 truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="text"
+                            defaultValue={lead.remarks || ''}
+                            title={lead.remarks || ''}
+                            placeholder="Click to add remarks..."
+                            onBlur={(e) => handleRemarksBlur(lead.id, lead.remarks, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                (e.target as HTMLInputElement).blur()
+                              }
+                            }}
+                            className="w-full px-2 py-1 text-xs text-slate-700 bg-transparent hover:bg-slate-50 focus:bg-white border border-transparent hover:border-slate-300 focus:border-blue-500 rounded truncate transition-colors"
+                          />
+                        </td>
+
+                        {/* 6. Priority */}
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          {lead.priority ? (
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                                lead.priority.toLowerCase() === 'high'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : lead.priority.toLowerCase() === 'medium'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {lead.priority}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards (< 768px): title, phone, status, category, remarks, priority */}
+            <div className="md:hidden divide-y divide-slate-200">
+              {leads.map((lead) => {
+                const currentStatus = lead.status
+                const statusBg = currentStatus ? currentStatus.color : '#94A3B8'
+
+                return (
+                  <div
+                    key={lead.id}
+                    tabIndex={0}
+                    onClick={() => navigate(`/leads/${lead.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        navigate(`/leads/${lead.id}`)
+                      }
+                    }}
+                    className="p-4 space-y-3 hover:bg-slate-50 focus:bg-slate-50 cursor-pointer transition-colors outline-none"
+                  >
+                    {/* Header: Title and Priority */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-slate-900 text-sm leading-snug truncate" title={lead.title}>
+                        {lead.title}
+                      </h3>
+                      {lead.priority && (
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 border ${
+                            lead.priority.toLowerCase() === 'high'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : lead.priority.toLowerCase() === 'medium'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {lead.priority}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Phone */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {lead.phone ? (
+                        <a
+                          href={`tel:${lead.phone}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-blue-600 hover:text-blue-800"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-blue-500" />
+                          <span>{lead.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">No phone</span>
+                      )}
+                    </div>
+
+                    {/* Category & Status Dropdowns */}
+                    <div className="grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Status */}
+                      <div className="relative">
+                        <select
+                          value={lead.statusId || ''}
+                          onChange={(e) => {
+                            const val = e.target.value ? Number(e.target.value) : null
+                            handleStatusChange(lead.id, val)
+                          }}
+                          style={{
+                            backgroundColor: `${statusBg}15`,
+                            borderColor: `${statusBg}40`,
+                            color: statusBg,
+                          }}
+                          className="w-full appearance-none font-semibold text-xs rounded-full pl-2.5 pr-6 py-1 border truncate cursor-pointer focus:outline-none focus:ring-1"
+                        >
+                          <option value="" className="text-slate-700 bg-white">
+                            Not called
+                          </option>
+                          {statuses.map((s) => (
+                            <option key={s.id} value={s.id} className="text-slate-700 bg-white">
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown
+                          className="w-3 h-3 absolute right-2.5 top-2 pointer-events-none"
+                          style={{ color: statusBg }}
+                        />
+                      </div>
+
+                      {/* Category */}
+                      <div>
                         <select
                           value={lead.categoryId || ''}
                           onChange={(e) => {
                             const val = e.target.value ? Number(e.target.value) : null
                             handleCategoryChange(lead.id, val)
                           }}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="w-full px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-700 truncate focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
                         >
                           <option value="">Unassigned</option>
                           {categories.map((c) => (
@@ -418,122 +632,30 @@ export const LeadsView: React.FC = () => {
                             </option>
                           ))}
                         </select>
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Status (colored pill dropdown) */}
-                      <td
-                        className="px-3 py-2.5 whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="relative inline-block">
-                          <select
-                            value={lead.statusId || ''}
-                            onChange={(e) => {
-                              const val = e.target.value ? Number(e.target.value) : null
-                              handleStatusChange(lead.id, val)
-                            }}
-                            style={{
-                              backgroundColor: `${statusBg}15`,
-                              borderColor: `${statusBg}40`,
-                              color: statusBg,
-                            }}
-                            className="appearance-none font-semibold text-xs rounded-full pl-3 pr-7 py-1 border transition-colors cursor-pointer focus:outline-none focus:ring-1"
-                          >
-                            <option value="" className="text-slate-700 bg-white">
-                              Not called
-                            </option>
-                            {statuses.map((s) => (
-                              <option key={s.id} value={s.id} className="text-slate-700 bg-white">
-                                {s.name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown
-                            className="w-3 h-3 absolute right-2.5 top-2 pointer-events-none"
-                            style={{ color: statusBg }}
-                          />
-                        </div>
-                      </td>
-
-                      {/* Remarks (click to edit, saves on blur) */}
-                      <td
-                        className="px-3 py-2.5 max-w-[240px]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="text"
-                          defaultValue={lead.remarks || ''}
-                          placeholder="Click to add remarks..."
-                          onBlur={(e) => handleRemarksBlur(lead.id, lead.remarks, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              (e.target as HTMLInputElement).blur()
-                            }
-                          }}
-                          className="w-full px-2 py-1 text-xs text-slate-700 bg-transparent hover:bg-slate-50 focus:bg-white border border-transparent hover:border-slate-300 focus:border-blue-500 rounded truncate transition-colors"
-                        />
-                      </td>
-
-                      {/* Priority */}
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        {lead.priority ? (
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                              lead.priority.toLowerCase() === 'high'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : lead.priority.toLowerCase() === 'medium'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {lead.priority}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-
-                      {/* Rating */}
-                      <td className="px-3 py-2.5 whitespace-nowrap text-slate-600 font-mono">
-                        {lead.reviewRating != null ? String(lead.reviewRating) : '-'}
-                      </td>
-
-                      {/* Website */}
-                      <td
-                        className="px-3 py-2.5 whitespace-nowrap text-slate-600"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {lead.website ? (
-                          <a
-                            href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                            title={lead.website}
-                          >
-                            <span>Link</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-
-                      {/* Address */}
-                      <td className="px-3 py-2.5 text-slate-600 max-w-[180px] truncate">
-                        {lead.address || '-'}
-                      </td>
-
-                      {/* Emails */}
-                      <td className="px-3 py-2.5 text-slate-600 max-w-[150px] truncate font-mono">
-                        {lead.emails || '-'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                    {/* Remarks */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        defaultValue={lead.remarks || ''}
+                        title={lead.remarks || ''}
+                        placeholder="Add remarks..."
+                        onBlur={(e) => handleRemarksBlur(lead.id, lead.remarks, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur()
+                          }
+                        }}
+                        className="w-full px-2.5 py-1 text-xs text-slate-700 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded truncate transition-colors"
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
 
         {/* Pagination Bar */}
@@ -583,18 +705,6 @@ export const LeadsView: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['leads'] })
           queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         }}
-      />
-
-      {/* Slide-in Details Panel */}
-      <LeadSidePanel
-        lead={selectedLead}
-        isOpen={isSidePanelOpen}
-        onClose={() => {
-          setIsSidePanelOpen(false)
-          setSelectedLead(null)
-        }}
-        statuses={statuses}
-        categories={categories}
       />
     </div>
   )

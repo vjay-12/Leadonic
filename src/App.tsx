@@ -6,6 +6,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { LoginView } from './components/auth/LoginView'
 import { DashboardView } from './components/dashboard/DashboardView'
 import { LeadsView } from './components/leads/LeadsView'
+import { LeadDetailPage } from './components/leads/LeadDetailPage'
 import { ReportView } from './components/report/ReportView'
 import { SettingsView } from './components/settings/SettingsView'
 import { RefreshCw } from 'lucide-react'
@@ -32,6 +33,7 @@ const AuthenticatedApp: React.FC = () => {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardView />} />
           <Route path="/leads" element={<LeadsView />} />
+          <Route path="/leads/:id" element={<LeadDetailPage />} />
           <Route path="/report" element={<ReportView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />

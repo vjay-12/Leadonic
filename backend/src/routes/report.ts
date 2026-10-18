@@ -11,7 +11,7 @@ interface MatrixRow {
 }
 
 async function generateReportData(categoryIdParam?: string, fromParam?: string, toParam?: string) {
-  const where: any = {}
+  const where: any = { archivedAt: null }
 
   if (categoryIdParam) {
     const cid = parseInt(categoryIdParam, 10)
@@ -47,7 +47,7 @@ async function generateReportData(categoryIdParam?: string, fromParam?: string, 
         statusId: true,
       },
     }),
-  ])
+  ] as const)
 
   // Build matrix rows
   const rows: MatrixRow[] = categories.map((cat) => {

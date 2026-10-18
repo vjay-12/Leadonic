@@ -154,12 +154,14 @@ model Lead {
   category        LeadCategory? @relation(fields: [categoryId], references: [id])
   batchId         Int?          @map("batch_id")
   batch           ImportBatch?  @relation(fields: [batchId], references: [id])
+  archivedAt      DateTime?     @map("archived_at")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
   @@index([statusId])
   @@index([categoryId])
   @@index([priority])
+  @@index([archivedAt])
   @@map("leads")
 }
 ```
@@ -255,14 +257,19 @@ The app is public on Vercel and holds business contact data, so protect it with 
 
 ### Leads
 
-- `GET /api/leads?search=&statusId=&categoryId=&priority=&page=1&pageSize=50&sort=createdAt:desc`
+- `GET /api/leads?search=&statusId=&categoryId=&priority=&archived=active|archived&page=1&pageSize=50&sort=createdAt:desc`
+  - `archived=active` (default): filters `where: { archivedAt: null }`.
+  - `archived=archived`: filters `where: { archivedAt: { not: null } }`.
   - `statusId=none` means "no status".
   - `search` matches title, phone, address, emails (case-insensitive).
   - Returns `{ items, total, page, pageSize }` with status and category included.
+- `GET /api/leads/:id`: returns full lead details including batch info.
 - `POST /api/leads`: create one lead. Required: `title`. Compute `phoneNormalized` and `dedupeKey`. On duplicate, return **409** `{ error: "A lead with this phone already exists", existingId }`.
 - `PATCH /api/leads/:id`: update any field (status, category, remarks, and so on). Recompute the dedupe fields if title, phone or address change.
-- `DELETE /api/leads/:id`
-- `GET /api/leads/export.csv?...`: same filters, returns a CSV.
+- `POST /api/leads/:id/archive`: sets `archivedAt = new Date()`.
+- `POST /api/leads/:id/restore`: sets `archivedAt = null`.
+- `DELETE /api/leads/:id`: allowed **only** for archived leads (`archivedAt !== null`). For active leads, returns **409** `{ error: "Archive this lead first." }`.
+- `GET /api/leads/export.csv?...`: follows the active/archived filter (defaults to active only), returns a CSV.
 
 ### Import
 
@@ -274,13 +281,14 @@ The app is public on Vercel and holds business contact data, so protect it with 
 
 - The browser parses the file, maps headers using `HEADER_TO_FIELD`, and sends rows in **chunks of 500** (Vercel request size limit).
 - For each row: skip when `title` is empty (count as an error with a reason); compute `phoneNormalized` and `dedupeKey`; skip duplicates inside the same file; skip rows whose `dedupeKey` already exists in the database.
-- `dryRun: true` returns `{ willAdd, duplicates, errors: [{ row, reason }] }` and writes nothing.
-- `dryRun: false` creates an `ImportBatch` (first chunk only, then reuse its `batchId`), inserts with `createMany({ skipDuplicates: true })`, sets `categoryId` on every new lead, and returns `{ added, skipped, errors, batchId }`.
+- **Archived leads still block duplicates on import** so they do not come back. The import summary reports `skippedArchivedCount` (how many skipped duplicates were archived).
+- `dryRun: true` returns `{ willAdd, duplicates, skippedArchivedCount, errors: [{ row, reason }] }` and writes nothing.
+- `dryRun: false` creates an `ImportBatch` (first chunk only, then reuse its `batchId`), inserts with `createMany({ skipDuplicates: true })`, sets `categoryId` on every new lead, and returns `{ added, skipped, skippedArchivedCount, errors, batchId }`.
 
 ### Dashboard and report
 
-- `GET /api/dashboard` returns: `total`, `newThisWeek`, `notCalled` (no status), `byStatus` (name, color, count), `byCategory` (name, count), `byPriority` (priority, count).
-- `GET /api/report?categoryId=&from=&to=` returns a matrix: one row per category, one column per status plus "Not called" and "Total". `GET /api/report.csv` returns the same as CSV.
+- `GET /api/dashboard` counts **active leads only** (`archivedAt: null`): `total`, `newThisWeek`, `notCalled` (no status), `byStatus` (name, color, count), `byCategory` (name, count), `byPriority` (priority, count).
+- `GET /api/report?categoryId=&from=&to=` counts **active leads only**: returns a matrix: one row per category, one column per status plus "Not called" and "Total". `GET /api/report.csv` returns the same as CSV.
 
 ---
 
@@ -298,19 +306,35 @@ The app is public on Vercel and holds business contact data, so protect it with 
 ### Pages
 
 1. **Login:** one password field and a sign-in button.
-2. **Dashboard:** stat cards (Total leads, New this week, Not called, Interested). Below, three simple lists or bar charts: by status, by category, by priority. Keep it plain.
+2. **Dashboard:** stat cards (Total leads, New this week, Not called, Interested) counting active leads only. Below, three simple lists or bar charts: by status, by category, by priority. Keep it plain.
 3. **Leads (main screen):**
-   - Toolbar: search box, filters (Status, Category, Priority), **Add Lead** button, **Import** button, **Export CSV**.
-   - Table columns: Title, Phone, Category, Status (dropdown), Remarks (click to edit, saves on blur), Priority, Rating, Website, Address, Emails. The phone is a `tel:` link. Sticky header, row hover, pagination (50 per page).
-   - Changing status or category saves instantly (optimistic update, roll back on error).
-   - Row click opens a side panel showing all fields, editable, plus Delete (with confirmation).
-   - **Add Lead** opens a form with every field, **Category** (required) and **Status** (optional) as dropdowns. Show the duplicate message from the API clearly.
-   - **Import** is a 3-step dialog:
-     1. Choose the file (.xlsx or .csv) **and choose a Category** (required, with a quick "add new category" link). Link to download a sample file.
-     2. Preview: matched columns (let me fix any unmatched header with a dropdown), first 10 rows, and a dry-run summary (will add, duplicates, errors with reasons).
-     3. Import with a progress bar (chunks of 500), then show the summary (added, skipped, errors) with a **View leads** button.
-4. **Report (simple):** the category by status table with filters for category and date range, and a **Download CSV** button.
-5. **Settings:** two tabs, **Statuses** and **Categories**. Each is a list where I can add, rename, change color (statuses only), reorder (drag handle), and delete. Show the lead count next to each item. Deleting something in use shows the 409 message.
+   - Toolbar: search box, filters (Status, Category, Priority, and **Active / Archived** toggle/filter, default Active), **Add Lead** button, **Import** button, **Export CSV**.
+   - **Table columns (strictly one row per lead, in this order):**
+     1. Title
+     2. Phone (clickable `tel:` link)
+     3. Category (compact dropdown)
+     4. Status (compact colored pill dropdown)
+     5. Remarks (inline edit, saves on blur, single-line with ellipsis and full text on hover)
+     6. Priority (badge)
+   - Removed columns: Rating, Website, Address, Emails, and row Actions buttons.
+   - **No horizontal scrolling at 1280px and wider.** Uses `table-layout: fixed` with set column widths. Title and Remarks stay on one line with an ellipsis, full text shows on hover (`title` attribute).
+   - Below 768px: responsive card layout (title, phone, status, category, remarks, priority).
+   - **Whole row is clickable** (pointer cursor, hover highlight, keyboard accessible). Phone link, status and category dropdowns, and remarks editor stop event propagation (`e.stopPropagation()`) so they do NOT trigger row click navigation.
+   - Row click navigates to `/leads/:id`.
+4. **Lead Detail Page (`/leads/:id`):**
+   - Replaces the old side panel with a dedicated full page styled like Yaazhi's Products & Stock detail page (using Leadonic's clean light theme).
+   - "Back to Leads" link/button at the top.
+   - **Header card:** title, category badge, status pill, priority badge, tap-to-call phone button. Action buttons at the top right: Edit, Archive (or Restore + Delete if archived).
+   - **Section cards with small uppercase labels and larger values:**
+     - **Contact:** phone, emails, website (external link), address (link to Google Maps).
+     - **Business info:** Maps category, rating and review count, has website, needs website, ERP match, needs ERP, priority score.
+     - **Tracking:** status dropdown, category dropdown, remarks (editable, saves on blur).
+     - **Record info:** created, last updated, import batch file name.
+   - **Edit:** opens Add/Edit Lead form prefilled; saving updates the lead and shows a toast.
+   - **Archive:** asks for confirmation. An archived lead shows an "Archived" badge, Restore button, and Delete button. Delete asks for confirmation ("This cannot be undone"), then returns to `/leads`.
+   - Proper loading skeleton and "Lead not found" state.
+5. **Report (simple):** category by status table (active leads only) with filters for category and date range, and a **Download CSV** button.
+6. **Settings:** two tabs, **Statuses** and **Categories**. Each is a list where I can add, rename, change color (statuses only), reorder (drag handle), and delete. Show the lead count next to each item. Deleting something in use shows the 409 message.
 
 ---
 
@@ -337,6 +361,7 @@ Commit to `main` after each item. Tick the box when done.
 - [x] 8. Dashboard
 - [x] 9. Report and CSV exports
 - [x] 10. Polish (empty, loading and error states, mobile layout), deploy to Vercel, update README
+- [ ] 11. Leads table optimization (single-row fixed layout, responsive cards), Lead detail page (`/leads/:id`) matching Yaazhi style, Archive-before-delete workflow (schema migration, API endpoints, import check, UI)
 
 ## 10. Acceptance test (run before saying "done")
 

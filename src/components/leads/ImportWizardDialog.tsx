@@ -75,6 +75,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
   const [importSummary, setImportSummary] = useState<{
     added: number
     skipped: number
+    skippedArchivedCount?: number
     errors: { row: number; reason: string }[]
   } | null>(null)
 
@@ -212,6 +213,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     let currentBatchId: number | null = null
     let totalAdded = 0
     let totalSkipped = 0
+    let totalSkippedArchived = 0
     const allErrors: { row: number; reason: string }[] = []
 
     try {
@@ -227,6 +229,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
         currentBatchId = res.batchId
         totalAdded += res.added
         totalSkipped += res.skipped
+        totalSkippedArchived += res.skippedArchivedCount || 0
         if (res.errors) allErrors.push(...res.errors)
 
         const pct = Math.round(((i + 1) / totalChunks) * 100)
@@ -236,6 +239,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
       setImportSummary({
         added: totalAdded,
         skipped: totalSkipped,
+        skippedArchivedCount: totalSkippedArchived,
         errors: allErrors,
       })
       await queryClient.invalidateQueries({ queryKey: ['leads'] })
@@ -439,6 +443,11 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
                     <p className="text-xs font-semibold text-amber-700 uppercase">Duplicates (Skip)</p>
                     <p className="text-2xl font-bold text-amber-900 mt-0.5">{dryRunResult.duplicates}</p>
+                    {dryRunResult.skippedArchivedCount != null && dryRunResult.skippedArchivedCount > 0 && (
+                      <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                        ({dryRunResult.skippedArchivedCount} archived)
+                      </p>
+                    )}
                   </div>
                   <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-center">
                     <p className="text-xs font-semibold text-rose-700 uppercase">Errors</p>
@@ -583,6 +592,11 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                       <p className="text-xs font-semibold text-slate-600 uppercase">Skipped</p>
                       <p className="text-2xl font-bold text-slate-900 mt-1">{importSummary.skipped}</p>
+                      {importSummary.skippedArchivedCount != null && importSummary.skippedArchivedCount > 0 && (
+                        <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                          ({importSummary.skippedArchivedCount} archived)
+                        </p>
+                      )}
                     </div>
                     <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg">
                       <p className="text-xs font-semibold text-rose-700 uppercase">Errors</p>

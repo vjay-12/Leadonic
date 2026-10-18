@@ -10,23 +10,26 @@ dashboardRouter.get('/', async (_req: Request, res: Response) => {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
     const [total, newThisWeek, notCalled, allStatuses, allCategories, rawLeads] = await Promise.all([
-      prisma.lead.count(),
       prisma.lead.count({
-        where: { createdAt: { gte: oneWeekAgo } },
+        where: { archivedAt: null },
       }),
       prisma.lead.count({
-        where: { statusId: null },
+        where: { archivedAt: null, createdAt: { gte: oneWeekAgo } },
+      }),
+      prisma.lead.count({
+        where: { archivedAt: null, statusId: null },
       }),
       prisma.leadStatus.findMany({
         orderBy: { sortOrder: 'asc' },
-        include: { _count: { select: { leads: true } } },
+        include: { _count: { select: { leads: { where: { archivedAt: null } } } } },
       }),
       prisma.leadCategory.findMany({
         orderBy: { sortOrder: 'asc' },
-        include: { _count: { select: { leads: true } } },
+        include: { _count: { select: { leads: { where: { archivedAt: null } } } } },
       }),
       prisma.lead.groupBy({
         by: ['priority'],
+        where: { archivedAt: null },
         _count: { id: true },
       }),
     ])

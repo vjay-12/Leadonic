@@ -79,6 +79,13 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
       where.priority = priorityParam
     }
 
+    const archivedParam = typeof req.query['archived'] === 'string' ? req.query['archived'] : 'active'
+    if (archivedParam === 'archived') {
+      where.archivedAt = { not: null }
+    } else {
+      where.archivedAt = null
+    }
+
     const [items, total] = await Promise.all([
       prisma.lead.findMany({
         where,
@@ -141,6 +148,13 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
 
     if (priorityParam) {
       where.priority = priorityParam
+    }
+
+    const archivedParam = typeof req.query['archived'] === 'string' ? req.query['archived'] : 'active'
+    if (archivedParam === 'archived') {
+      where.archivedAt = { not: null }
+    } else {
+      where.archivedAt = null
     }
 
     const leads = await prisma.lead.findMany({
@@ -341,6 +355,7 @@ leadsRouter.patch('/:id', async (req: Request, res: Response) => {
       include: {
         status: true,
         category: true,
+        batch: true,
       },
     })
 
@@ -351,18 +366,106 @@ leadsRouter.patch('/:id', async (req: Request, res: Response) => {
   }
 })
 
+// GET /api/leads/:id
+leadsRouter.get('/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  try {
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        status: true,
+        category: true,
+        batch: true,
+      },
+    })
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+    return res.json(lead)
+  } catch (err: any) {
+    console.error('Error fetching lead:', err)
+    return res.status(500).json({ error: 'Failed to fetch lead' })
+  }
+})
+
+// POST /api/leads/:id/archive
+leadsRouter.post('/:id/archive', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  try {
+    const existing = await prisma.lead.findUnique({ where: { id } })
+    if (!existing) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    const updated = await prisma.lead.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+      include: {
+        status: true,
+        category: true,
+        batch: true,
+      },
+    })
+    return res.json(updated)
+  } catch (err: any) {
+    console.error('Error archiving lead:', err)
+    return res.status(500).json({ error: 'Failed to archive lead' })
+  }
+})
+
+// POST /api/leads/:id/restore
+leadsRouter.post('/:id/restore', async (req: Request, res: Response) => {
+  const id = parseInt(req.params['id'] as string, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+
+  try {
+    const existing = await prisma.lead.findUnique({ where: { id } })
+    if (!existing) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    const updated = await prisma.lead.update({
+      where: { id },
+      data: { archivedAt: null },
+      include: {
+        status: true,
+        category: true,
+        batch: true,
+      },
+    })
+    return res.json(updated)
+  } catch (err: any) {
+    console.error('Error restoring lead:', err)
+    return res.status(500).json({ error: 'Failed to restore lead' })
+  }
+})
+
 // DELETE /api/leads/:id
 leadsRouter.delete('/:id', async (req: Request, res: Response) => {
   const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 
   try {
+    const existing = await prisma.lead.findUnique({ where: { id } })
+    if (!existing) {
+      return res.status(404).json({ error: 'Lead not found' })
+    }
+
+    if (!existing.archivedAt) {
+      return res.status(409).json({ error: 'Archive this lead first.' })
+    }
+
     await prisma.lead.delete({
       where: { id },
     })
-    return res.json({ ok: true })
+    return res.json({ ok: true, id })
   } catch (err: any) {
     console.error('Error deleting lead:', err)
     return res.status(500).json({ error: 'Failed to delete lead' })
   }
 })
+

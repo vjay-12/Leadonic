@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
-import { LeadStatus, LeadCategory } from '../../types'
+import { Lead, LeadStatus, LeadCategory } from '../../types'
 import { X, AlertCircle } from 'lucide-react'
 
 interface AddLeadModalProps {
@@ -10,6 +10,7 @@ interface AddLeadModalProps {
   onClose: () => void
   statuses: LeadStatus[]
   categories: LeadCategory[]
+  leadToEdit?: Lead | null
   onOpenImport?: () => void
 }
 
@@ -18,13 +19,14 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   onClose,
   statuses,
   categories,
+  leadToEdit,
 }) => {
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
 
   const [title, setTitle] = useState('')
   const [phone, setPhone] = useState('')
-  const [categoryId, setCategoryId] = useState<number | ''>(categories[0]?.id || '')
+  const [categoryId, setCategoryId] = useState<number | ''>('')
   const [statusId, setStatusId] = useState<number | ''>('')
   const [remarks, setRemarks] = useState('')
   const [priority, setPriority] = useState<string>('')
@@ -39,23 +41,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   const [needsErp, setNeedsErp] = useState<string>('')
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createLead(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['statuses'] })
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      success('Lead created successfully')
-      onClose()
-      resetForm()
-    },
-    onError: (err: any) => {
-      setErrorMessage(err.message || 'Failed to create lead')
-      toastError(err.message || 'Failed to create lead')
-    },
-  })
 
   const resetForm = () => {
     setTitle('')
@@ -76,6 +61,62 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
     setErrorMessage(null)
   }
 
+  useEffect(() => {
+    if (isOpen) {
+      if (leadToEdit) {
+        setTitle(leadToEdit.title || '')
+        setPhone(leadToEdit.phone || '')
+        setCategoryId(leadToEdit.categoryId || '')
+        setStatusId(leadToEdit.statusId || '')
+        setRemarks(leadToEdit.remarks || '')
+        setPriority(leadToEdit.priority || '')
+        setAddress(leadToEdit.address || '')
+        setEmails(leadToEdit.emails || '')
+        setWebsite(leadToEdit.website || '')
+        setReviewRating(leadToEdit.reviewRating != null ? String(leadToEdit.reviewRating) : '')
+        setReviewCount(leadToEdit.reviewCount != null ? String(leadToEdit.reviewCount) : '')
+        setErpMatch(leadToEdit.erpMatch || '')
+        setHasWebsite(leadToEdit.hasWebsite === true ? 'true' : leadToEdit.hasWebsite === false ? 'false' : '')
+        setNeedsWebsite(leadToEdit.needsWebsite === true ? 'true' : leadToEdit.needsWebsite === false ? 'false' : '')
+        setNeedsErp(leadToEdit.needsErp === true ? 'true' : leadToEdit.needsErp === false ? 'false' : '')
+      } else {
+        resetForm()
+      }
+      setErrorMessage(null)
+    }
+  }, [isOpen, leadToEdit, categories])
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (leadToEdit) {
+        return api.updateLead(leadToEdit.id, data)
+      }
+      return api.createLead(data)
+    },
+    onSuccess: (savedLead) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['statuses'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      if (leadToEdit) {
+        queryClient.invalidateQueries({ queryKey: ['lead', leadToEdit.id] })
+        queryClient.setQueryData(['lead', leadToEdit.id], savedLead)
+        success('Lead updated successfully')
+      } else {
+        success('Lead created successfully')
+      }
+      onClose()
+      if (!leadToEdit) {
+        resetForm()
+      }
+    },
+    onError: (err: any) => {
+      const msg = err.message || (leadToEdit ? 'Failed to update lead' : 'Failed to create lead')
+      setErrorMessage(msg)
+      toastError(msg)
+    },
+  })
+
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,7 +126,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
       return
     }
 
-    createMutation.mutate({
+    saveMutation.mutate({
       title: title.trim(),
       phone: phone.trim() || null,
       categoryId: categoryId ? Number(categoryId) : null,
@@ -110,12 +151,16 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Add New Lead</h2>
-            <p className="text-xs text-slate-500">Fill in lead details to add manually</p>
+            <h2 className="text-lg font-bold text-slate-900">
+              {leadToEdit ? 'Edit Lead' : 'Add New Lead'}
+            </h2>
+            <p className="text-xs text-slate-500">
+              {leadToEdit ? 'Update lead details and save changes' : 'Fill in lead details to add manually'}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -372,16 +417,20 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending}
+              disabled={saveMutation.isPending}
               className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
             >
-              {createMutation.isPending ? 'Saving...' : 'Create Lead'}
+              {saveMutation.isPending
+                ? 'Saving...'
+                : leadToEdit
+                ? 'Save Changes'
+                : 'Create Lead'}
             </button>
           </div>
         </form>

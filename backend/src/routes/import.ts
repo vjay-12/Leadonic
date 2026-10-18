@@ -102,10 +102,11 @@ importRouter.post('/', async (req: Request, res: Response) => {
       where: {
         dedupeKey: { in: candidateDedupeKeys },
       },
-      select: { dedupeKey: true },
+      select: { dedupeKey: true, archivedAt: true },
     })
 
     const existingDbDedupeKeys = new Set(existingDbLeads.map((l) => l.dedupeKey))
+    const skippedArchivedCount = existingDbLeads.filter((l) => l.archivedAt != null).length
     const totalDuplicates = fileDuplicatesCount + existingDbDedupeKeys.size
 
     const rowsToCreate = validRowsToInsert.filter((r) => !existingDbDedupeKeys.has(r.dedupeKey))
@@ -115,6 +116,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
       return res.json({
         willAdd,
         duplicates: totalDuplicates,
+        skippedArchivedCount,
         errors,
       })
     }
@@ -176,6 +178,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
     return res.json({
       added: willAdd,
       skipped: totalDuplicates,
+      skippedArchivedCount,
       errors,
       batchId,
     })

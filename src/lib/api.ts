@@ -120,6 +120,7 @@ export const api = {
     statusId?: string
     categoryId?: string
     priority?: string
+    archived?: 'active' | 'archived'
     page?: number
     pageSize?: number
     sort?: string
@@ -129,11 +130,16 @@ export const api = {
     if (params.statusId) q.set('statusId', params.statusId)
     if (params.categoryId) q.set('categoryId', params.categoryId)
     if (params.priority) q.set('priority', params.priority)
+    if (params.archived) q.set('archived', params.archived)
     if (params.page) q.set('page', String(params.page))
     if (params.pageSize) q.set('pageSize', String(params.pageSize))
     if (params.sort) q.set('sort', params.sort)
 
     return request(`/api/leads?${q.toString()}`)
+  },
+
+  async getLead(id: number): Promise<Lead> {
+    return request(`/api/leads/${id}`)
   },
 
   async createLead(data: Partial<Lead>): Promise<Lead> {
@@ -150,7 +156,19 @@ export const api = {
     })
   },
 
-  async deleteLead(id: number): Promise<{ ok: boolean }> {
+  async archiveLead(id: number): Promise<Lead> {
+    return request(`/api/leads/${id}/archive`, {
+      method: 'POST',
+    })
+  },
+
+  async restoreLead(id: number): Promise<Lead> {
+    return request(`/api/leads/${id}/restore`, {
+      method: 'POST',
+    })
+  },
+
+  async deleteLead(id: number): Promise<{ ok: boolean; id?: number }> {
     return request(`/api/leads/${id}`, { method: 'DELETE' })
   },
 
