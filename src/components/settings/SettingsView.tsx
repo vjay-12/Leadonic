@@ -244,25 +244,25 @@ export const SettingsView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Settings</h1>
-        <p className="text-sm text-slate-500">Manage pipeline lead statuses, categories, and school stages</p>
+        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-none">Settings</h1>
+        <p className="text-[13px] text-slate-500 mt-1">Manage pipeline lead statuses, categories, and school stages</p>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-slate-200">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-6 h-9" aria-label="Tabs">
           <button
             onClick={() => {
               setActiveTab('statuses')
               setConflictError(null)
             }}
-            className={`py-3 px-1 border-b-2 font-medium text-sm cursor-pointer ${
+            className={`py-1 px-1 border-b-2 text-[13.5px] cursor-pointer inline-flex items-center ${
               activeTab === 'statuses'
                 ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 font-medium'
             }`}
           >
             Statuses ({statuses.length})
@@ -272,10 +272,10 @@ export const SettingsView: React.FC = () => {
               setActiveTab('categories')
               setConflictError(null)
             }}
-            className={`py-3 px-1 border-b-2 font-medium text-sm cursor-pointer ${
+            className={`py-1 px-1 border-b-2 text-[13.5px] cursor-pointer inline-flex items-center ${
               activeTab === 'categories'
                 ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 font-medium'
             }`}
           >
             Categories ({categories.length})
@@ -285,10 +285,10 @@ export const SettingsView: React.FC = () => {
               setActiveTab('schoolStages')
               setConflictError(null)
             }}
-            className={`py-3 px-1 border-b-2 font-medium text-sm cursor-pointer ${
+            className={`py-1 px-1 border-b-2 text-[13.5px] cursor-pointer inline-flex items-center ${
               activeTab === 'schoolStages'
                 ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 font-medium'
             }`}
           >
             School Stages ({schoolStages.length})
@@ -298,26 +298,26 @@ export const SettingsView: React.FC = () => {
 
       {/* Conflict Error Notice */}
       {conflictError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-start justify-between text-sm text-rose-800">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start justify-between text-xs text-rose-800">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span className="font-medium">{conflictError}</span>
           </div>
           <button
             onClick={() => setConflictError(null)}
             className="text-rose-500 hover:text-rose-700 p-1"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Statuses Tab Content */}
       {activeTab === 'statuses' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Add Status Form */}
-          <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Add New Status</h2>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-3.5 shadow-2xs">
+            <h2 className="text-[14px] font-semibold text-slate-900 mb-2.5">Add New Status</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -328,39 +328,39 @@ export const SettingsView: React.FC = () => {
                   })
                 }
               }}
-              className="flex flex-wrap items-center gap-3"
+              className="flex flex-wrap items-center gap-2.5"
             >
               <input
                 type="text"
-                placeholder="Status name (max 24 chars, e.g. Qualified)"
+                placeholder="Status name (max 20 chars, e.g. Qualified)"
                 value={newStatusName}
-                maxLength={24}
+                maxLength={20}
                 onChange={(e) => setNewStatusName(e.target.value)}
-                className="flex-1 min-w-[200px] px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="flex-1 min-w-[200px] h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 required
               />
-              <div className="flex items-center gap-2 border border-slate-300 rounded-md px-2.5 py-1.5 bg-white">
+              <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-2 h-8 bg-white">
                 <input
                   type="color"
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
-                  className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                  className="w-5 h-5 rounded cursor-pointer border-0 p-0"
                 />
-                <span className="text-xs font-mono text-slate-600 uppercase">{newStatusColor}</span>
+                <span className="text-[11px] font-mono text-slate-600 uppercase">{newStatusColor}</span>
               </div>
               <button
                 type="submit"
                 disabled={createStatusMutation.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Add Status</span>
               </button>
             </form>
           </div>
 
           {/* Statuses List */}
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+          <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden shadow-2xs">
             {loadingStatuses ? (
               <div className="p-8 text-center text-slate-400 text-sm">Loading statuses...</div>
             ) : statuses.length === 0 ? (
@@ -370,7 +370,7 @@ export const SettingsView: React.FC = () => {
                 {statuses.map((status, idx) => (
                   <div
                     key={status.id}
-                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    className="px-3 py-2 h-[44px] flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {/* Reorder Buttons */}
@@ -379,29 +379,29 @@ export const SettingsView: React.FC = () => {
                           onClick={() => moveStatus(idx, 'up')}
                           disabled={idx === 0}
                           title="Move up"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowUp className="w-3.5 h-3.5" />
+                          <ArrowUp className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => moveStatus(idx, 'down')}
                           disabled={idx === statuses.length - 1}
                           title="Move down"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowDown className="w-3.5 h-3.5" />
+                          <ArrowDown className="w-3.5 h-3" />
                         </button>
                       </div>
 
                       {/* Color indicator & name */}
                       <span
-                        className="w-3.5 h-3.5 rounded-full shrink-0"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: status.color }}
                       />
-                      <span className="font-semibold text-slate-900 text-sm">{status.name}</span>
+                      <span className="font-semibold text-slate-900 text-[13px]">{status.name}</span>
 
                       {/* Lead count */}
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
                         {status.leadCount} {status.leadCount === 1 ? 'lead' : 'leads'}
                       </span>
                     </div>
@@ -410,10 +410,10 @@ export const SettingsView: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditingStatus(status)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit status"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
@@ -421,10 +421,10 @@ export const SettingsView: React.FC = () => {
                             deleteStatusMutation.mutate(status.id)
                           }
                         }}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Delete status"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -437,10 +437,10 @@ export const SettingsView: React.FC = () => {
 
       {/* Categories Tab Content */}
       {activeTab === 'categories' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Add Category Form */}
-          <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Add New Category</h2>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-3.5 shadow-2xs">
+            <h2 className="text-[14px] font-semibold text-slate-900 mb-2.5">Add New Category</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -448,39 +448,39 @@ export const SettingsView: React.FC = () => {
                   createCategoryMutation.mutate({ name: newCategoryName.trim() })
                 }
               }}
-              className="flex flex-wrap items-center gap-3"
+              className="flex flex-wrap items-center gap-2.5"
             >
               <input
                 type="text"
                 placeholder="Category name (e.g. Hospital)"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                className="flex-1 min-w-[200px] px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="flex-1 min-w-[200px] h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 required
               />
               <button
                 type="submit"
                 disabled={createCategoryMutation.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Add Category</span>
               </button>
             </form>
           </div>
 
           {/* Categories List */}
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+          <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden shadow-2xs">
             {loadingCategories ? (
-              <div className="p-8 text-center text-slate-400 text-sm">Loading categories...</div>
+              <div className="p-8 text-center text-slate-400 text-[13px]">Loading categories...</div>
             ) : categories.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-sm">No categories configured.</div>
+              <div className="p-8 text-center text-slate-400 text-[13px]">No categories configured.</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {categories.map((cat, idx) => (
                   <div
                     key={cat.id}
-                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    className="px-3 py-2 h-[44px] flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {/* Reorder Buttons */}
@@ -489,24 +489,24 @@ export const SettingsView: React.FC = () => {
                           onClick={() => moveCategory(idx, 'up')}
                           disabled={idx === 0}
                           title="Move up"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowUp className="w-3.5 h-3.5" />
+                          <ArrowUp className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => moveCategory(idx, 'down')}
                           disabled={idx === categories.length - 1}
                           title="Move down"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowDown className="w-3.5 h-3.5" />
+                          <ArrowDown className="w-3 h-3" />
                         </button>
                       </div>
 
-                      <span className="font-semibold text-slate-900 text-sm">{cat.name}</span>
+                      <span className="font-semibold text-slate-900 text-[13px]">{cat.name}</span>
 
                       {/* Lead count */}
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
                         {cat.leadCount} {cat.leadCount === 1 ? 'lead' : 'leads'}
                       </span>
                     </div>
@@ -515,10 +515,10 @@ export const SettingsView: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditingCategory(cat)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit category"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
@@ -526,10 +526,10 @@ export const SettingsView: React.FC = () => {
                             deleteCategoryMutation.mutate(cat.id)
                           }
                         }}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Delete category"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -542,10 +542,10 @@ export const SettingsView: React.FC = () => {
 
       {/* School Stages Tab Content */}
       {activeTab === 'schoolStages' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Add School Stage Form */}
-          <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-2xs">
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Add New School Stage</h2>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-3.5 shadow-2xs">
+            <h2 className="text-[14px] font-semibold text-slate-900 mb-2.5">Add New School Stage</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -556,48 +556,48 @@ export const SettingsView: React.FC = () => {
                   })
                 }
               }}
-              className="flex flex-wrap items-center gap-3"
+              className="flex flex-wrap items-center gap-2.5"
             >
               <input
                 type="text"
                 placeholder="Stage name (e.g. Contacted)"
                 value={newSchoolStageName}
                 onChange={(e) => setNewSchoolStageName(e.target.value)}
-                className="flex-1 min-w-[200px] px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                className="flex-1 min-w-[200px] h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 required
               />
-              <div className="flex items-center gap-2 border border-slate-300 rounded-md px-2.5 py-1.5 bg-white">
+              <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-2 h-8 bg-white">
                 <input
                   type="color"
                   value={newSchoolStageColor}
                   onChange={(e) => setNewSchoolStageColor(e.target.value)}
-                  className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                  className="w-5 h-5 rounded cursor-pointer border-0 p-0"
                 />
-                <span className="text-xs font-mono text-slate-600 uppercase">{newSchoolStageColor}</span>
+                <span className="text-[11px] font-mono text-slate-600 uppercase">{newSchoolStageColor}</span>
               </div>
               <button
                 type="submit"
                 disabled={createSchoolStageMutation.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Add Stage</span>
               </button>
             </form>
           </div>
 
           {/* School Stages List */}
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
+          <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden shadow-2xs">
             {loadingSchoolStages ? (
-              <div className="p-8 text-center text-slate-400 text-sm">Loading school stages...</div>
+              <div className="p-8 text-center text-slate-400 text-[13px]">Loading school stages...</div>
             ) : schoolStages.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-sm">No school stages configured.</div>
+              <div className="p-8 text-center text-slate-400 text-[13px]">No school stages configured.</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {schoolStages.map((stage, idx) => (
                   <div
                     key={stage.id}
-                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    className="px-3 py-2 h-[44px] flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {/* Reorder Buttons */}
@@ -606,29 +606,29 @@ export const SettingsView: React.FC = () => {
                           onClick={() => moveSchoolStage(idx, 'up')}
                           disabled={idx === 0}
                           title="Move up"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowUp className="w-3.5 h-3.5" />
+                          <ArrowUp className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => moveSchoolStage(idx, 'down')}
                           disabled={idx === schoolStages.length - 1}
                           title="Move down"
-                          className="p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
+                          className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowDown className="w-3.5 h-3.5" />
+                          <ArrowDown className="w-3.5 h-3" />
                         </button>
                       </div>
 
                       {/* Color indicator & name */}
                       <span
-                        className="w-3.5 h-3.5 rounded-full shrink-0"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: stage.color }}
                       />
-                      <span className="font-semibold text-slate-900 text-sm">{stage.name}</span>
+                      <span className="font-semibold text-slate-900 text-[13px]">{stage.name}</span>
 
                       {/* School count */}
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
                         {stage.schoolCount ?? 0} {(stage.schoolCount ?? 0) === 1 ? 'school' : 'schools'}
                       </span>
                     </div>
@@ -637,10 +637,10 @@ export const SettingsView: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditingSchoolStage(stage)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit stage"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
@@ -648,10 +648,10 @@ export const SettingsView: React.FC = () => {
                             deleteSchoolStageMutation.mutate(stage.id)
                           }
                         }}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Delete stage"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -664,15 +664,15 @@ export const SettingsView: React.FC = () => {
 
       {/* Edit Status Modal */}
       {editingStatus && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg p-6 max-w-sm w-full shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-900">Edit Status</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-[14px] font-semibold text-slate-900">Edit Status</h3>
               <button
                 onClick={() => setEditingStatus(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form
@@ -688,32 +688,32 @@ export const SettingsView: React.FC = () => {
                   })
                 }
               }}
-              className="space-y-4"
+              className="space-y-3.5"
             >
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Name
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
+                  Name (max 20 characters)
                 </label>
                 <input
                   name="name"
                   defaultValue={editingStatus.name}
-                  maxLength={24}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  maxLength={20}
+                  className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                   Color
                 </label>
-                <div className="flex items-center gap-2 border border-slate-300 rounded-md px-2.5 py-1.5">
+                <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-2 h-8">
                   <input
                     name="color"
                     type="color"
                     defaultValue={editingStatus.color}
-                    className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                    className="w-5 h-5 rounded cursor-pointer border-0 p-0"
                   />
-                  <span className="text-xs font-mono text-slate-600 uppercase">
+                  <span className="text-[11px] font-mono text-slate-600 uppercase">
                     {editingStatus.color}
                   </span>
                 </div>
@@ -722,14 +722,14 @@ export const SettingsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingStatus(null)}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md"
+                  className="h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateStatusMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-60"
+                  className="h-8 px-3.5 text-[13px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-60 cursor-pointer shadow-xs"
                 >
                   Save Changes
                 </button>
@@ -741,15 +741,15 @@ export const SettingsView: React.FC = () => {
 
       {/* Edit Category Modal */}
       {editingCategory && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg p-6 max-w-sm w-full shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-900">Edit Category</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-[14px] font-semibold text-slate-900">Edit Category</h3>
               <button
                 onClick={() => setEditingCategory(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form
@@ -764,16 +764,16 @@ export const SettingsView: React.FC = () => {
                   })
                 }
               }}
-              className="space-y-4"
+              className="space-y-3.5"
             >
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                   Name
                 </label>
                 <input
                   name="name"
                   defaultValue={editingCategory.name}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
@@ -781,14 +781,14 @@ export const SettingsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingCategory(null)}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md"
+                  className="h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateCategoryMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-60"
+                  className="h-8 px-3.5 text-[13px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-60 cursor-pointer shadow-xs"
                 >
                   Save Changes
                 </button>
@@ -800,15 +800,15 @@ export const SettingsView: React.FC = () => {
 
       {/* Edit School Stage Modal */}
       {editingSchoolStage && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-lg p-6 max-w-sm w-full shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-900">Edit School Stage</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5 max-w-sm w-full shadow-xl">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-[14px] font-semibold text-slate-900">Edit School Stage</h3>
               <button
                 onClick={() => setEditingSchoolStage(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form
@@ -824,31 +824,31 @@ export const SettingsView: React.FC = () => {
                   })
                 }
               }}
-              className="space-y-4"
+              className="space-y-3.5"
             >
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                   Name
                 </label>
                 <input
                   name="name"
                   defaultValue={editingSchoolStage.name}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                   Color
                 </label>
-                <div className="flex items-center gap-2 border border-slate-300 rounded-md px-2.5 py-1.5">
+                <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-2 h-8">
                   <input
                     name="color"
                     type="color"
                     defaultValue={editingSchoolStage.color}
-                    className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                    className="w-5 h-5 rounded cursor-pointer border-0 p-0"
                   />
-                  <span className="text-xs font-mono text-slate-600 uppercase">
+                  <span className="text-[11px] font-mono text-slate-600 uppercase">
                     {editingSchoolStage.color}
                   </span>
                 </div>
@@ -857,14 +857,14 @@ export const SettingsView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingSchoolStage(null)}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md"
+                  className="h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateSchoolStageMutation.isPending}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-60"
+                  className="h-8 px-3.5 text-[13px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-60 cursor-pointer shadow-xs"
                 >
                   Save Changes
                 </button>

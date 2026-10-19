@@ -264,13 +264,13 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full shadow-2xl my-8 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-[10px] max-w-3xl w-full shadow-2xl my-6 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Import Leads from Spreadsheet</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-[15px] font-bold text-slate-900">Import Leads from Spreadsheet</h2>
+            <p className="text-[12px] text-slate-500">
               Step {step} of 3: {step === 1 ? 'Choose File & Category' : step === 2 ? 'Column Mapping & Preview' : 'Import Progress'}
             </p>
           </div>
@@ -279,49 +279,49 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
               handleReset()
               onClose()
             }}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-200"
+            className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Step Indicator */}
-        <div className="px-6 py-3 border-b border-slate-100 bg-white flex items-center justify-between text-xs">
-          <div className={`flex items-center gap-2 ${step === 1 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>1</span>
+        <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between text-[12px]">
+          <div className={`flex items-center gap-1.5 ${step === 1 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
+            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>1</span>
             <span>Upload & Category</span>
           </div>
-          <div className="h-0.5 w-8 bg-slate-200" />
-          <div className={`flex items-center gap-2 ${step === 2 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>2</span>
+          <div className="h-0.5 w-6 bg-slate-200" />
+          <div className={`flex items-center gap-1.5 ${step === 2 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
+            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>2</span>
             <span>Mapping & Dry Run</span>
           </div>
-          <div className="h-0.5 w-8 bg-slate-200" />
-          <div className={`flex items-center gap-2 ${step === 3 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>3</span>
+          <div className="h-0.5 w-6 bg-slate-200" />
+          <div className={`flex items-center gap-1.5 ${step === 3 ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
+            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>3</span>
             <span>Summary</span>
           </div>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-6 flex-1 overflow-y-auto max-h-[70vh]">
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
           {/* STEP 1: CHOOSE FILE & CATEGORY */}
           {step === 1 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* File Dropzone */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-2">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1.5">
                   Spreadsheet File (.xlsx, .csv)
                 </label>
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-500 bg-slate-50/50 transition-colors">
-                  <FileSpreadsheet className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                <div className="border-2 border-dashed border-slate-300 rounded-[10px] p-5 text-center hover:border-blue-500 bg-slate-50/50 transition-colors">
+                  <FileSpreadsheet className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                   {selectedFile ? (
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{selectedFile.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-[13px] font-semibold text-slate-900">{selectedFile.name}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
                         {rawRows.length} rows parsed
                       </p>
-                      <label className="inline-block mt-3 px-3 py-1 bg-white border border-slate-300 rounded text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
+                      <label className="inline-block mt-2.5 h-7 px-3 leading-7 bg-white border border-slate-300 rounded-lg text-[12px] font-medium text-slate-700 cursor-pointer hover:bg-slate-50">
                         Choose different file
                         <input
                           type="file"
@@ -335,8 +335,8 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                     </div>
                   ) : (
                     <div>
-                      <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium cursor-pointer inline-flex items-center gap-2 transition-colors shadow-xs">
-                        <Upload className="w-4 h-4" />
+                      <label className="h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
                         <span>Select Excel or CSV File</span>
                         <input
                           type="file"
@@ -347,7 +347,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                           }}
                         />
                       </label>
-                      <p className="text-xs text-slate-400 mt-2">
+                      <p className="text-[11px] text-slate-400 mt-1.5">
                         Supports standard scraper format or Google Sheet exports
                       </p>
                     </div>
@@ -357,40 +357,40 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
               {/* Category Picker & Quick Add */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-slate-700 uppercase">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-semibold text-slate-700 uppercase">
                     Select Target Category *
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowAddCat(!showAddCat)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
+                    className="text-[11px] text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-3 h-3" />
                     <span>Quick add new category</span>
                   </button>
                 </div>
 
                 {showAddCat && (
-                  <form onSubmit={handleQuickAddCategory} className="mb-3 p-3 bg-blue-50/60 border border-blue-200 rounded-md flex items-center gap-2">
+                  <form onSubmit={handleQuickAddCategory} className="mb-2.5 p-2.5 bg-blue-50/60 border border-blue-200 rounded-lg flex items-center gap-2">
                     <input
                       type="text"
                       placeholder="Category name (e.g. Salons)"
                       value={newCatName}
                       onChange={(e) => setNewCatName(e.target.value)}
-                      className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-600"
+                      className="flex-1 h-8 px-2.5 text-[12px] bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600"
                     />
                     <button
                       type="submit"
                       disabled={isAddingCat}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                      className="h-8 px-3 bg-blue-600 text-white text-[12px] font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                     >
                       {isAddingCat ? 'Adding...' : 'Add'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowAddCat(false)}
-                      className="px-2 py-1.5 text-slate-500 hover:text-slate-700 text-xs"
+                      className="h-8 px-2 text-slate-500 hover:text-slate-700 text-[12px] cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -400,7 +400,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                   required
                 >
                   <option value="">Choose a Category...</option>
@@ -416,7 +416,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
               </div>
 
               {/* Sample File Download Link */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-[10px] flex items-center justify-between text-[12px]">
                 <span className="text-slate-600">Need a reference format?</span>
                 <a
                   href="/api/leads/sample.xlsx"
@@ -432,42 +432,42 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
           {/* STEP 2: COLUMN MAPPING & DRY RUN */}
           {step === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Dry Run Summary Card */}
               {isDryRunning ? (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center text-sm text-blue-700 animate-pulse">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-[10px] text-center text-[13px] text-blue-700 animate-pulse">
                   Analyzing file rows and testing against existing database leads...
                 </div>
               ) : dryRunError ? (
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-sm text-rose-700">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-[10px] flex items-center gap-2 text-[13px] text-rose-700">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                   <span>{dryRunError}</span>
                 </div>
               ) : dryRunResult ? (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-center">
-                    <p className="text-xs font-semibold text-emerald-700 uppercase">Will Add</p>
-                    <p className="text-2xl font-bold text-emerald-900 mt-0.5">{dryRunResult.willAdd}</p>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-[10px] text-center">
+                    <p className="text-[11px] font-semibold text-emerald-700 uppercase">Will Add</p>
+                    <p className="text-[20px] font-bold text-emerald-900 mt-0.5">{dryRunResult.willAdd}</p>
                   </div>
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
-                    <p className="text-xs font-semibold text-amber-700 uppercase">Duplicates (Skip)</p>
-                    <p className="text-2xl font-bold text-amber-900 mt-0.5">{dryRunResult.duplicates}</p>
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-[10px] text-center">
+                    <p className="text-[11px] font-semibold text-amber-700 uppercase">Duplicates (Skip)</p>
+                    <p className="text-[20px] font-bold text-amber-900 mt-0.5">{dryRunResult.duplicates}</p>
                     {dryRunResult.skippedArchivedCount != null && dryRunResult.skippedArchivedCount > 0 && (
-                      <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                      <p className="text-[10px] text-amber-700 font-medium mt-0.5">
                         ({dryRunResult.skippedArchivedCount} archived)
                       </p>
                     )}
                   </div>
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-center">
-                    <p className="text-xs font-semibold text-rose-700 uppercase">Errors</p>
-                    <p className="text-2xl font-bold text-rose-900 mt-0.5">{dryRunResult.errors.length}</p>
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-[10px] text-center">
+                    <p className="text-[11px] font-semibold text-rose-700 uppercase">Errors</p>
+                    <p className="text-[20px] font-bold text-rose-900 mt-0.5">{dryRunResult.errors.length}</p>
                   </div>
                 </div>
               ) : null}
 
               {/* Errors List if any */}
               {dryRunResult && dryRunResult.errors.length > 0 && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1 max-h-28 overflow-y-auto">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-[10px] text-[12px] text-rose-800 space-y-1 max-h-24 overflow-y-auto">
                   <p className="font-semibold">Row validation issues found:</p>
                   {dryRunResult.errors.slice(0, 5).map((e, idx) => (
                     <div key={idx}>
@@ -484,16 +484,16 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
               {/* Column Mapping Adjuster */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-700 uppercase mb-2">
+                <h3 className="text-[11px] font-semibold text-slate-700 uppercase mb-1.5">
                   Header Matching ({rawHeaders.length} headers detected)
                 </h3>
-                <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-48 overflow-y-auto text-xs">
+                <div className="border border-slate-200 rounded-[10px] divide-y divide-slate-100 max-h-44 overflow-y-auto text-[12px]">
                   {rawHeaders.map((header) => {
                     const currentField = columnMapping[header] || ''
                     return (
-                      <div key={header} className="p-2.5 flex items-center justify-between hover:bg-slate-50">
+                      <div key={header} className="p-2 flex items-center justify-between hover:bg-slate-50">
                         <span className="font-medium text-slate-800">{header}</span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <span className="text-slate-400">maps to</span>
                           <select
                             value={currentField}
@@ -501,7 +501,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                               const newMapping = { ...columnMapping, [header]: e.target.value }
                               setColumnMapping(newMapping)
                             }}
-                            className="px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-800"
+                            className="h-7 px-2 bg-white border border-slate-300 rounded-md text-[12px] text-slate-800 cursor-pointer"
                           >
                             <option value="">(Ignore Column)</option>
                             {FIELD_OPTIONS.map((f) => (
@@ -515,11 +515,11 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                     )
                   })}
                 </div>
-                <div className="mt-2 flex justify-end">
+                <div className="mt-1.5 flex justify-end">
                   <button
                     type="button"
                     onClick={() => runDryRun(getMappedRows())}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                    className="text-[12px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
                   >
                     Re-run validation preview
                   </button>
@@ -528,15 +528,15 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
               {/* First 10 Rows Preview */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-700 uppercase mb-2">
+                <h3 className="text-[11px] font-semibold text-slate-700 uppercase mb-1.5">
                   Data Preview (First 10 rows)
                 </h3>
-                <div className="border border-slate-200 rounded-lg overflow-x-auto max-h-44 text-xs">
+                <div className="border border-slate-200 rounded-[10px] overflow-x-auto max-h-40 text-[12px]">
                   <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-slate-50 h-8">
                       <tr>
                         {rawHeaders.slice(0, 6).map((h) => (
-                          <th key={h} className="px-3 py-2 text-left font-semibold text-slate-600">
+                          <th key={h} className="px-2.5 py-1 text-left font-semibold text-slate-600 text-[11px]">
                             {h}
                           </th>
                         ))}
@@ -544,9 +544,9 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {rawRows.slice(0, 10).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
+                        <tr key={idx} className="h-8 hover:bg-slate-50">
                           {rawHeaders.slice(0, 6).map((h) => (
-                            <td key={h} className="px-3 py-1.5 text-slate-700 truncate max-w-[150px]">
+                            <td key={h} className="px-2.5 py-1 text-slate-700 truncate max-w-[150px]">
                               {String(row[h] || '-')}
                             </td>
                           ))}
@@ -561,60 +561,60 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
           {/* STEP 3: CHUNK IMPORT & SUMMARY */}
           {step === 3 && (
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 py-3">
               {isImporting ? (
-                <div className="text-center space-y-4">
-                  <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mx-auto" />
+                <div className="text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full border-3 border-blue-600 border-t-transparent animate-spin mx-auto" />
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900">Importing Leads...</h3>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <h3 className="text-[15px] font-semibold text-slate-900">Importing Leads...</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       Writing records to database in chunks of 500
                     </p>
                   </div>
                   <div className="max-w-md mx-auto">
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${importProgress}%` }}
                       />
                     </div>
-                    <p className="text-xs text-slate-500 font-mono mt-1.5">{importProgress}% completed</p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-1">{importProgress}% completed</p>
                   </div>
                 </div>
               ) : importSummary ? (
-                <div className="text-center space-y-5">
-                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-7 h-7" />
+                <div className="text-center space-y-4">
+                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Import Complete</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <h3 className="text-[16px] font-bold text-slate-900">Import Complete</h3>
+                    <p className="text-[12px] text-slate-500 mt-0.5">
                       Batch processed successfully
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                      <p className="text-xs font-semibold text-emerald-700 uppercase">Added</p>
-                      <p className="text-2xl font-bold text-emerald-900 mt-1">{importSummary.added}</p>
+                  <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-[10px]">
+                      <p className="text-[11px] font-semibold text-emerald-700 uppercase">Added</p>
+                      <p className="text-[20px] font-bold text-emerald-900 mt-0.5">{importSummary.added}</p>
                     </div>
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                      <p className="text-xs font-semibold text-slate-600 uppercase">Skipped</p>
-                      <p className="text-2xl font-bold text-slate-900 mt-1">{importSummary.skipped}</p>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-[10px]">
+                      <p className="text-[11px] font-semibold text-slate-600 uppercase">Skipped</p>
+                      <p className="text-[20px] font-bold text-slate-900 mt-0.5">{importSummary.skipped}</p>
                       {importSummary.skippedArchivedCount != null && importSummary.skippedArchivedCount > 0 && (
-                        <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                        <p className="text-[10px] text-amber-700 font-medium mt-0.5">
                           ({importSummary.skippedArchivedCount} archived)
                         </p>
                       )}
                     </div>
-                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg">
-                      <p className="text-xs font-semibold text-rose-700 uppercase">Errors</p>
-                      <p className="text-2xl font-bold text-rose-900 mt-1">{importSummary.errors.length}</p>
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-[10px]">
+                      <p className="text-[11px] font-semibold text-rose-700 uppercase">Errors</p>
+                      <p className="text-[20px] font-bold text-rose-900 mt-0.5">{importSummary.errors.length}</p>
                     </div>
                   </div>
 
                   {importSummary.errors.length > 0 && (
-                    <div className="max-w-lg mx-auto text-left p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 max-h-32 overflow-y-auto">
+                    <div className="max-w-lg mx-auto text-left p-2.5 bg-rose-50 border border-rose-200 rounded-[10px] text-[11px] text-rose-800 max-h-28 overflow-y-auto">
                       <p className="font-semibold mb-1">Errors logged:</p>
                       {importSummary.errors.map((e, idx) => (
                         <div key={idx}>Row {e.row}: {e.reason}</div>
@@ -622,14 +622,14 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                     </div>
                   )}
 
-                  <div className="pt-2">
+                  <div className="pt-1.5">
                     <button
                       onClick={() => {
                         handleReset()
                         onSuccess()
                         onClose()
                       }}
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-md transition-colors cursor-pointer shadow-xs"
+                      className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-[13px] rounded-lg transition-colors cursor-pointer shadow-xs"
                     >
                       View Leads
                     </button>
@@ -642,14 +642,14 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
         {/* Footer Navigation */}
         {step !== 3 && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
             {step === 2 ? (
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md"
+                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back</span>
               </button>
             ) : (
@@ -659,7 +659,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                   handleReset()
                   onClose()
                 }}
-                className="px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md"
+                className="h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
@@ -670,20 +670,20 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                 type="button"
                 onClick={goToPreview}
                 disabled={!selectedFile || !categoryId}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold disabled:opacity-50 cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 <span>Next: Preview & Map</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={startImport}
                 disabled={isDryRunning || !dryRunResult || dryRunResult.willAdd === 0}
-                className="inline-flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold disabled:opacity-50 cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 <span>Import {dryRunResult?.willAdd || 0} Leads</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
           </div>

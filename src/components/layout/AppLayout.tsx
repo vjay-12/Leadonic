@@ -21,19 +21,19 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-12 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
             L
           </div>
-          <span className="font-semibold text-slate-900 tracking-tight">Leadonic</span>
+          <span className="font-semibold text-slate-900 text-[14px] tracking-tight">Leadonic</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md"
+          className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md cursor-pointer"
           aria-label="Toggle Navigation"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </button>
       </div>
 
@@ -45,25 +45,25 @@ export const AppLayout: React.FC = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar: 220px wide, compact brand block, nav items 36px tall with 13.5px text */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-60 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-[220px] bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Logo / App Name */}
-        <div className="h-14 lg:h-16 flex items-center px-6 border-b border-slate-100 gap-3">
-          <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-xs">
+        {/* Compact Brand Block */}
+        <div className="h-13 flex items-center px-4 border-b border-slate-100 gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             L
           </div>
-          <div>
-            <h1 className="font-bold text-slate-900 text-base leading-tight tracking-tight">Leadonic</h1>
-            <p className="text-[11px] font-medium text-slate-400">Lead Tracker</p>
+          <div className="min-w-0">
+            <h1 className="font-bold text-slate-900 text-[14px] leading-tight tracking-tight">Leadonic</h1>
+            <p className="text-[10.5px] font-medium text-slate-400 leading-none mt-0.5">Lead Tracker</p>
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        {/* Navigation Links: 36px tall, 13.5px text */}
+        <nav className="flex-1 px-2.5 py-3 space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive =
@@ -76,34 +76,34 @@ export const AppLayout: React.FC = () => {
                 key={item.to}
                 to={item.to}
                 onClick={closeMobile}
-                className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`h-9 flex items-center gap-2.5 px-3 text-[13.5px] rounded-lg transition-colors leading-none ${
                   isActive
                     ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <span className="truncate">{item.label}</span>
               </NavLink>
             )
           })}
         </nav>
 
         {/* Logout at bottom */}
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-2.5 border-t border-slate-100">
           <button
             onClick={() => logout()}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors"
+            className="w-full h-9 flex items-center gap-2.5 px-3 text-[13.5px] font-medium text-slate-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer leading-none"
           >
-            <LogOut className="w-4 h-4 text-slate-400" />
+            <LogOut className="w-4 h-4 text-slate-400 shrink-0" />
             <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 lg:pl-60 min-w-0 flex flex-col pt-14 lg:pt-0">
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      {/* Main Content Area: 20px padding sides, 14px at top, no empty top gap */}
+      <main className="flex-1 lg:pl-[220px] min-w-0 flex flex-col pt-12 lg:pt-0">
+        <div className="flex-1 w-full min-w-0 px-5 pt-3.5 pb-6">
           <Outlet />
         </div>
       </main>

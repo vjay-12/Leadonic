@@ -176,44 +176,44 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full shadow-xl my-8 overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-[10px] max-w-lg w-full shadow-xl my-8 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-[15px] font-bold text-slate-900">
                 {meetingToEdit ? 'Edit Meeting' : 'Record Meeting'}
               </h2>
-              <p className="text-xs text-slate-500 truncate max-w-sm" title={schoolName}>
+              <p className="text-[12px] text-slate-500 truncate max-w-sm" title={schoolName}>
                 {schoolName}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-200 cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Error message */}
         {errorMessage && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-xs font-medium text-rose-800">
+          <div className="mx-5 mt-3.5 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-xs font-medium text-rose-800">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Date */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Date *
               </label>
               <input
@@ -222,14 +222,14 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
                 max={today}
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
               <span className="text-[11px] text-slate-400 mt-0.5 block">Defaults to today</span>
             </div>
 
             {/* Time */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Time (optional)
               </label>
               <input
@@ -237,22 +237,22 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
                 placeholder="e.g. 11:30 AM"
                 value={meetingTime}
                 onChange={(e) => setMeetingTime(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Type */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Type *
               </label>
               <select
                 required
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="Call">Call</option>
                 <option value="Visit">Visit</option>
@@ -263,14 +263,14 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
 
             {/* Stage */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Stage *
               </label>
               <select
                 required
                 value={stageId}
                 onChange={(e) => setStageId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">Select Stage</option>
                 {stages.map((s) => (
@@ -284,7 +284,7 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
 
           {/* Location Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
               Location Name (optional)
             </label>
             <input
@@ -292,21 +292,21 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
               placeholder="e.g. Principal Office / Campus"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
 
           {/* Met with (Contact) */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-700 uppercase">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase">
                 Met with (Contact)
               </label>
               {!showNewContactForm && (
                 <button
                   type="button"
                   onClick={() => setShowNewContactForm(true)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 cursor-pointer"
+                  className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>New contact</span>
@@ -315,9 +315,9 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
             </div>
 
             {showNewContactForm ? (
-              <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg space-y-3">
+              <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800">Add New Contact</span>
+                  <span className="text-[12px] font-bold text-slate-800">Add New Contact</span>
                   <button
                     type="button"
                     onClick={() => setShowNewContactForm(false)}
@@ -332,21 +332,21 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
                     placeholder="Name *"
                     value={newContactName}
                     onChange={(e) => setNewContactName(e.target.value)}
-                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="px-2.5 h-8 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                   <input
                     type="text"
                     placeholder="Role (e.g. Principal)"
                     value={newContactRole}
                     onChange={(e) => setNewContactRole(e.target.value)}
-                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="px-2.5 h-8 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                   <input
                     type="text"
                     placeholder="Phone"
                     value={newContactPhone}
                     onChange={(e) => setNewContactPhone(e.target.value)}
-                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="px-2.5 h-8 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -354,7 +354,7 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
                     type="button"
                     onClick={handleCreateContactInline}
                     disabled={savingNewContact || !newContactName.trim()}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                    className="px-3 h-7 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                   >
                     {savingNewContact ? 'Adding...' : 'Save & Select Contact'}
                   </button>
@@ -364,7 +364,7 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
               <select
                 value={contactId}
                 onChange={(e) => setContactId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">None / Not specified</option>
                 {contacts.map((c) => (
@@ -379,7 +379,7 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
           {/* Notes */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-semibold text-slate-700 uppercase">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase">
                 Notes
               </label>
               <span className={`text-[11px] ${notes.length > 2000 ? 'text-rose-600 font-semibold' : 'text-slate-400'}`}>
@@ -387,27 +387,27 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
               </span>
             </div>
             <textarea
-              rows={4}
+              rows={3}
               placeholder="Summary of discussion, requirements, next steps..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
 
           {/* Buttons */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+          <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
+              className="px-3.5 h-8 text-[13px] font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saveMeetingMutation.isPending}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+              className="px-3.5 h-8 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
             >
               {saveMeetingMutation.isPending
                 ? 'Saving...'

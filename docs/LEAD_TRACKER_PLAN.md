@@ -516,3 +516,51 @@ Commit to `main` after each item. Tick the box when done.
 
 Call queue, follow-up dates, tasks, message templates, lead scoring, activity timeline, multiple users and roles, quotes, invoices and payments. We will add these later.
 
+---
+
+## 13. UI Layout & Compact Sizing Specification (1280 x 680 Viewport)
+
+Primary test viewport: **1280 x 680 CSS pixels** (representing a 1920px screen at 150% OS/browser scaling). Everything is engineered to fit without horizontal overflow, clipping, or unnecessary scrolling.
+
+### 13.1 Global Compact Scale Design System
+- **Typography**:
+  - Base text & table cells: 13px (`text-[13px]`)
+  - Small labels & badges: 11px uppercase (`text-[11px]`)
+  - Page titles: 20px bold (`text-[20px] font-bold`)
+  - Card titles: 14px semibold (`text-[14px] font-semibold`)
+- **Controls & Components**:
+  - Primary controls (buttons, inputs, dropdowns): 32px tall (`h-8`), radius 8px (`rounded-lg`).
+  - Icon-only action buttons: 28px (`w-7 h-7 rounded-lg inline-flex items-center justify-center`).
+  - Segmented tabs: 28px tall outer container (`h-7`), 24px inner buttons (`h-6`), 12px text.
+  - Table rows: 44px body rows (`h-[44px]`), 36px header row (`h-9`), horizontal cell padding 12px (`px-3`).
+  - Cards & containers: padding 14-16px (`p-3.5`), gaps 12px (`gap-3`), radius 10px (`rounded-[10px]`).
+  - Sidebar: 220px wide (`w-[220px]`), compact brand block, 36px nav items (`h-9`) with 13.5px text.
+  - Page padding: 20px horizontal, 14px top (`px-5 pt-3.5 pb-6`). Large empty header margins removed.
+  - Status & stage pills: 24px tall (`h-6`), 12px text, 6px dot, 10px side padding (`px-2.5`). Uniform width computed dynamically from the longest status name measured at 12px text + 28px padding (minimum 84px). Client and server enforce a 20-character maximum status name length.
+
+### 13.2 Leads Page Layout & Fixed Filter Bar
+- **Header**: 20px page title with 13px muted subtitle on the left; 32px "Add Lead", "Import", and "Export CSV" buttons on the right with 8px gaps.
+- **Filter Bar**: Single row with 10px card padding (`p-2.5`):
+  - Fixed 280px search box (`w-[280px] h-8`)
+  - Active/Archived segmented tabs (28px tall)
+  - Fixed 140px Status, Category, and Priority dropdowns (`w-[140px] h-8`)
+  - All controls 32px tall with 8px gaps. Reset button positioned at `ml-auto` to eliminate layout shift (0px movement) when filters change.
+- **Table**:
+  - Columns: Title, Phone, Category, Status, Priority, Last Contact, Actions.
+  - `table-layout: fixed; width: 100%;` without min-width or overflow. Zero clipping at 1280px viewport width.
+  - Column widths: Phone 120px, Category 96px, Status = pill width + 24px (~132px), Priority 76px, Last Contact 96px, Actions 156px. Title flexes to fill remainder (~444px) with ellipsis and tooltip.
+  - Below 1100px viewport width: Automatically collapses to responsive card layout.
+  - Actions column: 28px Record button (`h-7 px-2.5 text-[12px]`), 28px Edit icon button, 28px Archive icon button (or Restore and Delete buttons on Archived tab with permanent deletion modal). Entire row clickable to open details without triggering action buttons.
+
+### 13.3 Lead Detail Page (`/leads/:id`)
+- **Toolbar**: Slim "Back to Leads" link (13px text, 24px height). Record, Edit, Archive, Restore, Delete removed from page header (exclusive to list Actions column).
+- **Header Card** (14px padding): 44px initials tile; badges row (category chip, status pill, priority badge, muted "Lead #id"); 20px bold title; 13px address link with map pin icon; right key figures (LAST CONTACT, RATING with 10.5px uppercase label, 18px semibold value, 11.5px subtitle, "—" when empty).
+- **Contact Details Card**: 3 equal tiles filling row (Phone, Emails, Website; Address tile omitted to prevent redundancy). Tile padding 10px 12px, 10.5px uppercase label, 14px medium value, 11.5px action link.
+- **Business Information Card**: 6 equal tiles (~56px tall) filling row (Maps category, Priority score, ERP match, Has website, Needs website, Needs ERP) displaying label and value only without redundant lines.
+- **Contact History Card**: 14px header with "N records"; 36px table header, 44px rows, uniform status pill, notes clamped to 2 lines with full text tooltip.
+- **Space Budget**: At 1280 x 680 CSS pixels, Back link, Header card, Contact Details card, Business Information card, and Contact History header with its first row are fully visible above the fold without scrolling.
+
+### 13.4 Module Consistency
+The same 32px control scale, 10px card radius, 11px label / 13px body typography, 36px header / 44px body table rows, and 28px icon buttons are consistently applied to School ERP, Dashboard, Report, Settings, Login, and all modal dialogs.
+
+

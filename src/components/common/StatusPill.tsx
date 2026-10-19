@@ -3,23 +3,23 @@ import React, { useEffect } from 'react'
 let cachedMeasureCanvas: HTMLCanvasElement | null = null
 
 export function measureTextWidth(text: string, font = '600 12px Inter, system-ui, sans-serif'): number {
-  if (typeof document === 'undefined') return text.length * 7.5
+  if (typeof document === 'undefined') return text.length * 7.2
   try {
     if (!cachedMeasureCanvas) {
       cachedMeasureCanvas = document.createElement('canvas')
     }
     const ctx = cachedMeasureCanvas.getContext('2d')
-    if (!ctx) return text.length * 7.5
+    if (!ctx) return text.length * 7.2
     ctx.font = font
     return ctx.measureText(text).width
   } catch {
-    return text.length * 7.5
+    return text.length * 7.2
   }
 }
 
 export function computeSharedPillWidth(
   items: ({ name?: string | null } | string | null | undefined)[],
-  fallbackMin = 150
+  fallbackMin = 84
 ): number {
   const extractedNames = items.map((item) => {
     if (!item) return null
@@ -29,18 +29,18 @@ export function computeSharedPillWidth(
   const candidateNames = [...extractedNames.filter(Boolean) as string[], 'Not called', 'Not started']
   let maxTextWidth = 0
   for (const name of candidateNames) {
-    const w = measureTextWidth(name)
+    const w = measureTextWidth(name, '600 12px Inter, system-ui, sans-serif')
     if (w > maxTextWidth) maxTextWidth = w
   }
-  // dot (6px) + gap (6px) + padding (px-3 = 24px) + borders (2px) + safety buffer (10px) = 48px
-  const width = Math.ceil(maxTextWidth + 48)
+  // Exact requirement: Width = the longest status name measured at 12px plus 28px padding, minimum 84px
+  const width = Math.ceil(maxTextWidth + 28)
   return Math.max(fallbackMin, width)
 }
 
 export function setStatusPillWidthCssVar(
   items: ({ name?: string | null } | string | null | undefined)[]
 ): number {
-  const width = computeSharedPillWidth(items)
+  const width = computeSharedPillWidth(items, 84)
   if (typeof document !== 'undefined') {
     document.documentElement.style.setProperty('--status-pill-width', `${width}px`)
     document.documentElement.style.setProperty('--status-col-width', `${width + 24}px`)
@@ -90,15 +90,15 @@ export const StatusPill: React.FC<StatusPillProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold border shrink-0 text-center select-none ${
+      className={`inline-flex items-center justify-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold border shrink-0 text-center select-none leading-none ${
         isDefaultEmpty
           ? 'bg-slate-100 text-slate-500 border-slate-200'
           : ''
       } ${className}`}
       style={{
-        width: 'var(--status-pill-width, 168px)',
-        minWidth: 'var(--status-pill-width, 168px)',
-        maxWidth: 'var(--status-pill-width, 168px)',
+        width: 'var(--status-pill-width, 110px)',
+        minWidth: 'var(--status-pill-width, 110px)',
+        maxWidth: 'var(--status-pill-width, 110px)',
         backgroundColor: !isDefaultEmpty ? `${activeColor}15` : undefined,
         borderColor: !isDefaultEmpty ? `${activeColor}40` : undefined,
         color: !isDefaultEmpty ? activeColor : undefined,

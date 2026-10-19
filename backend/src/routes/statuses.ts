@@ -5,12 +5,12 @@ import { prisma } from '../db.js'
 export const statusesRouter = Router()
 
 const CreateStatusSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(24, 'Status name must not exceed 24 characters'),
+  name: z.string().trim().min(1, 'Name is required').max(20, 'Status name must not exceed 20 characters'),
   color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color required').default('#64748B'),
 })
 
 const UpdateStatusSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(24, 'Status name must not exceed 24 characters').optional(),
+  name: z.string().trim().min(1, 'Name is required').max(20, 'Status name must not exceed 20 characters').optional(),
   color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color required').optional(),
 })
 

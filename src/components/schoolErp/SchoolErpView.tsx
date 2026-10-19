@@ -181,15 +181,15 @@ export const SchoolErpView: React.FC = () => {
   const totalPages = Math.ceil(total / pageSize) || 1
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header and Add Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">School ERP</h1>
+            <GraduationCap className="w-5 h-5 text-blue-600" />
+            <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-none">School ERP</h1>
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-[13px] text-slate-500 mt-1">
             Manage school prospects, campus contacts, and demo meetings
           </p>
         </div>
@@ -198,15 +198,15 @@ export const SchoolErpView: React.FC = () => {
             resetAddForm()
             setIsAddModalOpen(true)
           }}
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors shadow-2xs cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 h-8 px-3 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors shadow-2xs cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Add School</span>
         </button>
       </div>
 
       {/* Toolbar / Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 bg-white p-2.5 border border-slate-200 rounded-[10px] shadow-2xs">
         {/* Search */}
         <form
           onSubmit={(e) => {
@@ -216,13 +216,13 @@ export const SchoolErpView: React.FC = () => {
           }}
           className="relative min-w-[220px] flex-1 max-w-sm"
         >
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2" />
           <input
             type="text"
             placeholder="Search school, area, phone..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full h-8 pl-8 pr-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
         </form>
 
@@ -233,7 +233,7 @@ export const SchoolErpView: React.FC = () => {
             setStageFilter(e.target.value)
             setPage(1)
           }}
-          className="w-40 px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+          className="w-40 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
         >
           <option value="">All Stages</option>
           <option value="none">Not started</option>
@@ -251,7 +251,7 @@ export const SchoolErpView: React.FC = () => {
             setAreaFilter(e.target.value)
             setPage(1)
           }}
-          className="w-36 px-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+          className="w-36 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
         >
           <option value="">All Areas</option>
           {areas.map((a) => (
@@ -281,7 +281,7 @@ export const SchoolErpView: React.FC = () => {
               setArchivedFilter('active')
               setPage(1)
             }}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 px-2 py-1.5 cursor-pointer"
+            className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 px-2 h-8 inline-flex items-center cursor-pointer ml-auto"
           >
             Reset
           </button>
@@ -289,7 +289,7 @@ export const SchoolErpView: React.FC = () => {
       </div>
 
       {/* Main Container */}
-      <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden flex flex-col">
+      <div className="bg-white border border-slate-200 rounded-[10px] shadow-2xs overflow-hidden flex flex-col">
         {isLoading ? (
           <div className="p-12 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
             <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
@@ -345,27 +345,27 @@ export const SchoolErpView: React.FC = () => {
                   <col className="w-[9%]" />
                   <col className="w-[12%]" />
                 </colgroup>
-                <thead className="bg-slate-50 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-3.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+                  <tr className="h-9">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       School
                     </th>
-                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Area
                     </th>
-                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Primary contact
                     </th>
-                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Phone
                     </th>
-                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Stage
                     </th>
-                    <th className="px-2 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Last meeting
                     </th>
-                    <th className="px-2.5 py-3 text-left font-semibold text-slate-600 uppercase tracking-wider">
+                    <th className="px-3 text-left font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
                       Record
                     </th>
                   </tr>
@@ -386,15 +386,15 @@ export const SchoolErpView: React.FC = () => {
                             navigate(`/school-erp/${school.id}`)
                           }
                         }}
-                        className="hover:bg-blue-50/40 focus:bg-blue-50/50 cursor-pointer transition-colors outline-none"
+                        className="h-[44px] hover:bg-blue-50/40 focus:bg-blue-50/50 cursor-pointer transition-colors outline-none text-[13px]"
                       >
                         {/* 1. School (24%): single line with ellipsis, full text on hover */}
-                        <td className="px-3.5 py-2.5 font-semibold text-slate-900 truncate" title={school.name}>
+                        <td className="px-3 font-semibold text-slate-900 truncate" title={school.name}>
                           <span className="truncate block">{school.name}</span>
                         </td>
 
                         {/* 2. Area (12%): single line with ellipsis */}
-                        <td className="px-2.5 py-2.5 text-slate-600 truncate" title={school.area || ''}>
+                        <td className="px-3 text-slate-600 truncate" title={school.area || ''}>
                           {school.area ? (
                             <span className="inline-flex items-center gap-1 truncate max-w-full">
                               <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
@@ -407,7 +407,7 @@ export const SchoolErpView: React.FC = () => {
 
                         {/* 3. Primary contact (21%): name and role on one line */}
                         <td
-                          className="px-2.5 py-2.5 text-slate-700 truncate"
+                          className="px-3 text-slate-700 truncate"
                           title={contact ? `${contact.name}${contact.role ? ` (${contact.role})` : ''}` : ''}
                         >
                           {contact ? (
@@ -427,7 +427,7 @@ export const SchoolErpView: React.FC = () => {
 
                         {/* 4. Phone (11%): does NOT trigger row click */}
                         <td
-                          className="px-2.5 py-2.5 whitespace-nowrap text-slate-600 font-mono truncate"
+                          className="px-3 whitespace-nowrap text-slate-600 font-mono truncate"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {school.phone ? (
@@ -445,25 +445,25 @@ export const SchoolErpView: React.FC = () => {
                         </td>
 
                         {/* 5. Stage: read-only uniform status pill */}
-                        <td className="px-2.5 py-2.5 whitespace-nowrap">
+                        <td className="px-3 whitespace-nowrap">
                           <StatusPill status={currentStage} fallbackText="Not started" />
                         </td>
 
                         {/* 6. Last meeting (9%): like "18 Oct" or "-" */}
-                        <td className="px-2 py-2.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                        <td className="px-3 whitespace-nowrap text-slate-600 font-mono text-[11px]">
                           {formatDateShort(school.lastMeetingDate)}
                         </td>
 
                         {/* 7. Record (12%): compact button on active schools only, does NOT trigger row click */}
                         <td
-                          className="px-2.5 py-2.5 whitespace-nowrap"
+                          className="px-3 whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {!school.archivedAt ? (
                             <button
                               type="button"
                               onClick={() => setRecordTargetSchool(school)}
-                              className="inline-flex items-center gap-1 px-2 py-1 h-[30px] text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors cursor-pointer shadow-2xs shrink-0"
+                              className="inline-flex items-center gap-1 px-2 h-7 text-[12px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer shadow-2xs shrink-0"
                               title={`Record meeting for ${school.name}`}
                             >
                               <PhoneCall className="w-3 h-3 text-blue-600 shrink-0" />
@@ -602,38 +602,38 @@ export const SchoolErpView: React.FC = () => {
       {/* Add School Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-xl max-w-xl w-full shadow-xl my-8 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white border border-slate-200 rounded-[10px] max-w-xl w-full shadow-xl my-8 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
                   <GraduationCap className="w-4 h-4" />
                 </div>
-                <h2 className="text-base font-bold text-slate-900">Add School</h2>
+                <h2 className="text-[15px] font-bold text-slate-900">Add School</h2>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-200 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {formError && (
-              <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-xs font-medium text-rose-800">
+              <div className="mx-5 mt-3.5 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-xs font-medium text-rose-800">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleCreateSubmit} className="p-5 space-y-3.5">
               {/* School Details */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1">
+                <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1">
                   School Information
                 </h3>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                     School Name *
                   </label>
                   <input
@@ -642,13 +642,13 @@ export const SchoolErpView: React.FC = () => {
                     placeholder="e.g. St. Joseph Matriculation School"
                     value={newSchoolName}
                     onChange={(e) => setNewSchoolName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Area / Locality
                     </label>
                     <input
@@ -656,12 +656,12 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="e.g. Katpadi / Anna Nagar"
                       value={newSchoolArea}
                       onChange={(e) => setNewSchoolArea(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Phone Number
                     </label>
                     <input
@@ -669,14 +669,14 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="e.g. 0416 224466 or 9876543210"
                       value={newSchoolPhone}
                       onChange={(e) => setNewSchoolPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Email Address
                     </label>
                     <input
@@ -684,12 +684,12 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="school@domain.com"
                       value={newSchoolEmail}
                       onChange={(e) => setNewSchoolEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Student Strength
                     </label>
                     <input
@@ -697,14 +697,14 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="e.g. 850"
                       value={newSchoolStrength}
                       onChange={(e) => setNewSchoolStrength(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Website URL
                     </label>
                     <input
@@ -712,12 +712,12 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="https://..."
                       value={newSchoolWebsite}
                       onChange={(e) => setNewSchoolWebsite(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                       Campus Address
                     </label>
                     <input
@@ -725,13 +725,13 @@ export const SchoolErpView: React.FC = () => {
                       placeholder="Street, City, PIN"
                       value={newSchoolAddress}
                       onChange={(e) => setNewSchoolAddress(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                     Notes
                   </label>
                   <textarea
@@ -739,7 +739,7 @@ export const SchoolErpView: React.FC = () => {
                     placeholder="Initial remarks, board affiliation (CBSE / Matric), etc."
                     value={newSchoolNotes}
                     onChange={(e) => setNewSchoolNotes(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
               </div>
@@ -754,7 +754,7 @@ export const SchoolErpView: React.FC = () => {
                       onChange={(e) => setHasPrimaryContact(e.target.checked)}
                       className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                     />
-                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
                       Add Primary Contact Now
                     </span>
                   </label>
@@ -762,10 +762,10 @@ export const SchoolErpView: React.FC = () => {
                 </div>
 
                 {hasPrimaryContact && (
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                           Contact Name *
                         </label>
                         <input
@@ -774,12 +774,12 @@ export const SchoolErpView: React.FC = () => {
                           placeholder="e.g. Dr. Rajesh Kumar"
                           value={contactName}
                           onChange={(e) => setContactName(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                           Role / Title
                         </label>
                         <input
@@ -787,14 +787,14 @@ export const SchoolErpView: React.FC = () => {
                           placeholder="e.g. Principal / Correspondent"
                           value={contactRole}
                           onChange={(e) => setContactRole(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                           Direct Phone
                         </label>
                         <input
@@ -802,12 +802,12 @@ export const SchoolErpView: React.FC = () => {
                           placeholder="Mobile / Ext."
                           value={contactPhone}
                           onChange={(e) => setContactPhone(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                           Direct Email
                         </label>
                         <input
@@ -815,13 +815,13 @@ export const SchoolErpView: React.FC = () => {
                           placeholder="personal.email@domain.com"
                           value={contactEmail}
                           onChange={(e) => setContactEmail(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                         Contact Notes
                       </label>
                       <input
@@ -829,7 +829,7 @@ export const SchoolErpView: React.FC = () => {
                         placeholder="Best time to call, key influencer..."
                         value={contactNotes}
                         onChange={(e) => setContactNotes(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-600"
                       />
                     </div>
                   </div>
@@ -837,18 +837,18 @@ export const SchoolErpView: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
+                  className="px-3.5 h-8 text-[13px] font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createSchoolMutation.isPending}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="px-3.5 h-8 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
                 >
                   {createSchoolMutation.isPending ? 'Adding School...' : 'Save School'}
                 </button>

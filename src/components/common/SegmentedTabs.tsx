@@ -30,7 +30,7 @@ export function SegmentedTabs<T extends string = string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`inline-flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200/90 text-xs shrink-0 select-none ${className}`}
+      className={`inline-flex items-center h-7 bg-slate-100 p-0.5 rounded-lg border border-slate-200/90 text-[12px] shrink-0 select-none ${className}`}
     >
       {options.map((opt) => {
         const isSelected = opt.value === value
@@ -41,7 +41,7 @@ export function SegmentedTabs<T extends string = string>({
             type="button"
             aria-selected={isSelected}
             onClick={() => onChange(opt.value)}
-            className={`px-3 py-1.5 rounded transition-all duration-150 cursor-pointer flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+            className={`h-6 px-2.5 rounded-md transition-all duration-150 cursor-pointer inline-flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 leading-none ${
               isSelected
                 ? 'bg-white text-slate-900 font-semibold shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 font-medium hover:bg-slate-200/50'

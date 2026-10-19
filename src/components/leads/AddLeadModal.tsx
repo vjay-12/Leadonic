@@ -152,40 +152,40 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-xl max-w-2xl w-full shadow-xl my-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-[10px] max-w-2xl w-full shadow-2xl my-6 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">
+            <h2 className="text-[15px] font-bold text-slate-900">
               {leadToEdit ? 'Edit Lead' : 'Add New Lead'}
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-[12px] text-slate-500">
               {leadToEdit ? 'Update lead details and save changes' : 'Fill in lead details to add manually'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 cursor-pointer"
+            className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Error message */}
         {errorMessage && (
-          <div className="mx-6 mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-sm font-medium text-rose-800">
+          <div className="mx-4 mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-[12px] font-medium text-rose-800">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Title */}
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Title / Business Name *
               </label>
               <input
@@ -194,13 +194,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Royal Silks & Boutique"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Phone Number
               </label>
               <input
@@ -208,20 +208,20 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 9840123456 or +91 98401..."
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Category *
               </label>
               <select
                 required
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">Select Category</option>
                 {categories.map((c) => (
@@ -234,13 +234,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
             {/* Priority */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Priority
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">None / Unassigned</option>
                 <option value="High">High</option>
@@ -251,7 +251,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
             {/* Address */}
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Address
               </label>
               <input
@@ -259,13 +259,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Full street address or locality"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Emails */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Email Address
               </label>
               <input
@@ -273,13 +273,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={emails}
                 onChange={(e) => setEmails(e.target.value)}
                 placeholder="info@business.com"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Website */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Website URL
               </label>
               <input
@@ -287,13 +287,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Review Rating */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Review Rating (0-5)
               </label>
               <input
@@ -304,13 +304,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={reviewRating}
                 onChange={(e) => setReviewRating(e.target.value)}
                 placeholder="4.5"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Review Count */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Review Count
               </label>
               <input
@@ -318,13 +318,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={reviewCount}
                 onChange={(e) => setReviewCount(e.target.value)}
                 placeholder="120"
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* ERP Match */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 ERP Match
               </label>
               <input
@@ -332,19 +332,19 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={erpMatch}
                 onChange={(e) => setErpMatch(e.target.value)}
                 placeholder="Tally, Zoho, etc."
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* Needs ERP */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Needs ERP
               </label>
               <select
                 value={needsErp}
                 onChange={(e) => setNeedsErp(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">Not specified</option>
                 <option value="true">Yes</option>
@@ -354,13 +354,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
             {/* Has Website */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Has Website
               </label>
               <select
                 value={hasWebsite}
                 onChange={(e) => setHasWebsite(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">Not specified</option>
                 <option value="true">Yes</option>
@@ -370,13 +370,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
             {/* Needs Website */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Needs Website
               </label>
               <select
                 value={needsWebsite}
                 onChange={(e) => setNeedsWebsite(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="">Not specified</option>
                 <option value="true">Yes</option>
@@ -386,7 +386,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
 
             {/* Remarks */}
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Remarks / Calling Notes
               </label>
               <textarea
@@ -394,24 +394,24 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Add initial notes or caller observations..."
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
           </div>
 
           {/* Footer buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+              className="h-8 px-3 text-[13px] font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
+              className="h-8 px-3.5 text-[13px] font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
             >
               {saveMutation.isPending
                 ? 'Saving...'

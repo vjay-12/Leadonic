@@ -1,13 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --status-pill-width: 172px;
-  --status-col-width: 196px;
+  --status-pill-width: 110px;
+  --status-col-width: 134px;
+  --sidebar-width: 220px;
+  --control-height: 32px;
+  --control-radius: 8px;
+  --card-radius: 10px;
+  --row-height: 44px;
+  --header-row-height: 36px;
   scrollbar-gutter: stable;
 }
 
 html, body {
   scrollbar-gutter: stable;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 @layer base {
