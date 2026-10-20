@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
@@ -10,6 +10,7 @@ import { SegmentedTabs } from '../common/SegmentedTabs'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { Select, SelectOption } from '../common/Select'
 import { PageHeader } from '../common/PageHeader'
+import { Pagination } from '../common/Pagination'
 import {
   Search,
   Plus,
@@ -35,7 +36,16 @@ export const SchoolErpView: React.FC = () => {
   const [areaFilter, setAreaFilter] = useState('')
   const [archivedFilter, setArchivedFilter] = useState<'active' | 'archived'>('active')
   const [page, setPage] = useState(1)
-  const pageSize = 50
+  const [pageSize, setPageSize] = useState(20)
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    const currentTotal = schoolsData?.total || 0
+    const newTotalPages = Math.max(1, Math.ceil(currentTotal / newSize))
+    if (page > newTotalPages) {
+      setPage(newTotalPages)
+    }
+  }
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -119,7 +129,7 @@ export const SchoolErpView: React.FC = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['schools', { search, stageFilter, areaFilter, archivedFilter, page }],
+    queryKey: ['schools', { search, stageFilter, areaFilter, archivedFilter, page, pageSize }],
     queryFn: () =>
       api.getSchools({
         search: search || undefined,
@@ -204,7 +214,14 @@ export const SchoolErpView: React.FC = () => {
 
   const schools = schoolsData?.items || []
   const total = schoolsData?.total || 0
-  const totalPages = Math.ceil(total / pageSize) || 1
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Auto-clamp page if schools are deleted or archived
+  useEffect(() => {
+    if (total > 0 && page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages, total])
 
   return (
     <div className="space-y-3.5">
@@ -593,33 +610,17 @@ export const SchoolErpView: React.FC = () => {
           </>
         )}
 
-        {/* Pagination Footer */}
-        {total > pageSize && (
-          <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
-            <div>
-              Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} schools
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 cursor-pointer font-medium"
-              >
-                Previous
-              </button>
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-2.5 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50 cursor-pointer font-medium"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Pagination Footer: Matching Yaazhi Footer */}
+        <Pagination
+          currentPage={page}
+          totalItems={total}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 20, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          itemLabel={archivedFilter === 'archived' ? 'archived schools' : 'schools'}
+          className="shrink-0"
+        />
       </div>
 
       {/* Add School Modal */}

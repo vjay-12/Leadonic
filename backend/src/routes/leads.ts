@@ -47,7 +47,7 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
     const categoryIdParam = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : ''
     const priorityParam = typeof req.query['priority'] === 'string' ? req.query['priority'] : ''
     const page = Math.max(1, parseInt(req.query['page'] as string, 10) || 1)
-    const pageSize = Math.min(100, Math.max(1, parseInt(req.query['pageSize'] as string, 10) || 50))
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.query['pageSize'] as string, 10) || 20))
     const sortParam = typeof req.query['sort'] === 'string' && req.query['sort'].trim() ? req.query['sort'].trim() : 'createdAt:desc'
 
     if (!ALLOWED_LEAD_SORTS[sortParam]) {

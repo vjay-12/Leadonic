@@ -95,7 +95,7 @@ schoolsRouter.get('/', async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt(typeof req.query['page'] === 'string' ? req.query['page'] : '1', 10) || 1)
     const pageSize = Math.min(
       100,
-      Math.max(1, parseInt(typeof req.query['pageSize'] === 'string' ? req.query['pageSize'] : '50', 10) || 50)
+      Math.max(1, parseInt(typeof req.query['pageSize'] === 'string' ? req.query['pageSize'] : '20', 10) || 20)
     )
 
     const where: any = {}

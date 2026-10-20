@@ -12,6 +12,7 @@ import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { SegmentedTabs } from '../common/SegmentedTabs'
 import { Select, SelectOption } from '../common/Select'
 import { PageHeader } from '../common/PageHeader'
+import { Pagination } from '../common/Pagination'
 import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import { formatDateShort } from '../../../lib/date'
 import {
@@ -20,8 +21,6 @@ import {
   Upload,
   Download,
   Phone,
-  ChevronLeft,
-  ChevronRight,
   PhoneCall,
   Edit3,
   Archive,
@@ -48,7 +47,16 @@ export const LeadsView: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('')
   const [archivedFilter, setArchivedFilter] = useState<'active' | 'archived'>('active')
   const [page, setPage] = useState(1)
-  const pageSize = 50
+  const [pageSize, setPageSize] = useState(20)
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    const currentTotal = leadsData?.total || 0
+    const newTotalPages = Math.max(1, Math.ceil(currentTotal / newSize))
+    if (page > newTotalPages) {
+      setPage(newTotalPages)
+    }
+  }
 
   const handleSortChange = (newSort: string) => {
     setSearchParams((prev) => {
@@ -93,7 +101,7 @@ export const LeadsView: React.FC = () => {
   })
 
   // Fetch Leads
-  const queryFilters = { search, statusFilter, categoryFilter, priorityFilter, archivedFilter, page, sortFilter }
+  const queryFilters = { search, statusFilter, categoryFilter, priorityFilter, archivedFilter, page, pageSize, sortFilter }
   const {
     data: leadsData,
     isLoading,
@@ -264,7 +272,14 @@ export const LeadsView: React.FC = () => {
 
   const leads = leadsData?.items || []
   const total = leadsData?.total || 0
-  const totalPages = Math.ceil(total / pageSize) || 1
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Auto-clamp page if leads are deleted or archived
+  useEffect(() => {
+    if (total > 0 && page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages, total])
   const isFiltered = Boolean(
     searchInput ||
       search ||
@@ -845,40 +860,17 @@ export const LeadsView: React.FC = () => {
           )}
         </div>
 
-        {/* 4. Pinned Pagination: Compact 32px Buttons */}
-        <div className="px-4 py-2.5 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-[13px] text-slate-600 shrink-0">
-          <div>
-            Showing <span className="font-semibold text-slate-900">{total === 0 ? 0 : (page - 1) * pageSize + 1}</span> to{' '}
-            <span className="font-semibold text-slate-900">{Math.min(page * pageSize, total)}</span> of{' '}
-            <span className="font-semibold text-slate-900">{total}</span> {archivedFilter === 'archived' ? 'archived leads' : 'active leads'}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="h-8 px-2.5 border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer inline-flex items-center gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
-            </button>
-
-            <span className="px-2 text-[12px] font-medium text-slate-500">
-              Page {page} of {totalPages}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="h-8 px-2.5 border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer inline-flex items-center gap-1"
-            >
-              <span>Next</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        {/* 4. Pinned Pagination: Matching Yaazhi Footer */}
+        <Pagination
+          currentPage={page}
+          totalItems={total}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 20, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          itemLabel={archivedFilter === 'archived' ? 'archived leads' : 'active leads'}
+          className="shrink-0"
+        />
       </div>
 
       {/* Add Lead Modal */}
