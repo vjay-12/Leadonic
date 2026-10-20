@@ -4,6 +4,7 @@ import { prisma } from '../db.js'
 import { normalizePhone, makeSchoolDedupeKey, parseNum } from '../../../lib/normalize.js'
 import { isFutureDateIST, parseDateToMidnightUTC } from '../../../lib/date.js'
 import { syncSchoolStage } from './schoolMeetings.js'
+import { isDeleteEnabled } from '../config.js'
 
 export const schoolsRouter = Router()
 
@@ -449,6 +450,10 @@ schoolsRouter.post('/:id/restore', async (req: Request, res: Response) => {
 // DELETE /api/schools/:id
 // DELETE works only on archived schools (409 "Archive this school first.")
 schoolsRouter.delete('/:id', async (req: Request, res: Response) => {
+  if (!isDeleteEnabled()) {
+    return res.status(403).json({ error: 'Delete is disabled' })
+  }
+
   const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 

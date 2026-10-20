@@ -4,6 +4,7 @@ import { prisma } from '../db.js'
 import { normalizePhone, makeDedupeKey, makeSchoolDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
 import { isFutureDateIST, parseDateToMidnightUTC, formatDateShort } from '../../../lib/date.js'
 import { syncLeadStatus } from './contacts.js'
+import { isDeleteEnabled } from '../config.js'
 
 export const leadsRouter = Router()
 
@@ -655,6 +656,10 @@ leadsRouter.post('/:id/restore', async (req: Request, res: Response) => {
 
 // DELETE /api/leads/:id
 leadsRouter.delete('/:id', async (req: Request, res: Response) => {
+  if (!isDeleteEnabled()) {
+    return res.status(403).json({ error: 'Delete is disabled' })
+  }
+
   const id = parseInt(req.params['id'] as string, 10)
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
 

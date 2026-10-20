@@ -16,6 +16,7 @@ import { schoolsRouter } from './routes/schools.js'
 import { schoolContactsRouter } from './routes/schoolContacts.js'
 import { schoolMeetingsRouter } from './routes/schoolMeetings.js'
 import { requireAuth } from './auth.js'
+import { isDeleteEnabled } from './config.js'
 
 dotenv.config()
 
@@ -45,6 +46,9 @@ app.get('/api/health', async (_req, res) => {
 })
 
 // Protected API routes
+app.get('/api/config', requireAuth, (_req, res) => {
+  res.json({ deleteEnabled: isDeleteEnabled() })
+})
 app.use('/api/lead-statuses', requireAuth, statusesRouter)
 app.use('/api/lead-categories', requireAuth, categoriesRouter)
 app.use('/api/contacts', requireAuth, contactsRouter)

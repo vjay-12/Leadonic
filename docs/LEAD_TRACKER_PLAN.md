@@ -563,4 +563,32 @@ Primary test viewport: **1280 x 680 CSS pixels** (representing a 1920px screen a
 ### 13.4 Module Consistency
 The same 32px control scale, 10px card radius, 11px label / 13px body typography, 36px header / 44px body table rows, and 28px icon buttons are consistently applied to School ERP, Dashboard, Report, Settings, Login, and all modal dialogs.
 
+---
+
+## 14. Permanent Delete Environment Switch (`ALLOW_DELETE`)
+
+Leadonic provides an environment-controlled safety mechanism for the permanent destruction of records.
+
+### 14.1 Configuration & Server Enforcement
+- **Environment Variable**: `ALLOW_DELETE` (server-side only, never exposed via `VITE_` prefix to prevent client-side build baking).
+- **Evaluation Rules**:
+  - Delete is enabled **only** when `process.env.ALLOW_DELETE` is the trimmed, case-insensitive string `"true"` (e.g. `"true"`, `"TRUE"`).
+  - Missing, empty, or any other value (e.g. `false`, `no`, `yes`, `1`) safely defaults to disabled (`false`).
+  - Evaluated dynamically per request via `isDeleteEnabled()` in `backend/src/config.ts`.
+- **Protected Endpoints**:
+  - `DELETE /api/leads/:id`
+  - `DELETE /api/schools/:id`
+  - When disabled: Immediately returns `403 Forbidden` with `{ "error": "Delete is disabled" }` before querying or modifying the database.
+  - When enabled: The existing archive prerequisite still applies (`409 Conflict: "Archive this lead first."` or `"Archive this school first."`).
+  - Safe Scope: Archive, restore, and entry-level deletions (individual contact history logs, school campus contacts, school meetings, settings items) remain operational.
+- **Config Endpoint**: `GET /api/config` (protected by `requireAuth`) returns `{ "deleteEnabled": boolean }` reflecting current runtime environment.
+
+### 14.2 Frontend Integration
+- **Hook**: `useAppConfig()` queries `/api/config` once after authentication with a long stale time (`staleTime: 1 hour`). `useDeleteEnabled()` exposes a boolean (`data?.deleteEnabled === true`).
+- **UI Presentation**:
+  - In Archived views (Leads list Actions column and School ERP detail page), the permanent delete button remains visible.
+  - When `deleteEnabled` is `false`: Button has `disabled` and `aria-disabled="true"`, styled greyed-out with `cursor: not-allowed` and title tooltip `"Delete is disabled"`. Clicks are intercepted so the confirmation modal never opens.
+  - When `deleteEnabled` is `true`: Operates normally, opening the permanent deletion confirmation modal.
+  - Server Error Fallback: If a delete request produces a `403` status, a toast displaying `"Delete is disabled"` is presented.
+
 

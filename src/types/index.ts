@@ -176,3 +176,7 @@ export interface ImportChunkResult {
   errors: { row: number; reason: string }[]
   batchId: number
 }
+
+export interface AppConfig {
+  deleteEnabled: boolean
+}

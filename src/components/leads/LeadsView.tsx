@@ -9,6 +9,7 @@ import { ImportWizardDialog } from './ImportWizardDialog'
 import { RecordContactDialog } from './RecordContactDialog'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { SegmentedTabs } from '../common/SegmentedTabs'
+import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import { formatDateShort } from '../../../lib/date'
 import {
   Search,
@@ -31,6 +32,7 @@ export const LeadsView: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const deleteEnabled = useDeleteEnabled()
 
   // Filter state
   const [searchInput, setSearchInput] = useState('')
@@ -154,7 +156,11 @@ export const LeadsView: React.FC = () => {
       success('Lead permanently deleted')
     },
     onError: (err: any) => {
-      toastError(err.message || 'Failed to delete lead')
+      if (err?.status === 403 || err?.message?.toLowerCase().includes('delete is disabled')) {
+        toastError('Delete is disabled')
+      } else {
+        toastError(err.message || 'Failed to delete lead')
+      }
     },
   })
 
@@ -586,10 +592,18 @@ export const LeadsView: React.FC = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => setDeleteConfirmLead(lead)}
-                                    className="w-7 h-7 flex items-center justify-center text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                                    title={`Delete ${lead.title} permanently`}
-                                    aria-label={`Delete ${lead.title} permanently`}
+                                    disabled={!deleteEnabled}
+                                    aria-disabled={!deleteEnabled}
+                                    onClick={() => {
+                                      if (deleteEnabled) setDeleteConfirmLead(lead)
+                                    }}
+                                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+                                      deleteEnabled
+                                        ? 'text-rose-600 hover:bg-rose-50 cursor-pointer'
+                                        : 'text-slate-300 cursor-not-allowed'
+                                    }`}
+                                    title={deleteEnabled ? `Delete ${lead.title} permanently` : 'Delete is disabled'}
+                                    aria-label={deleteEnabled ? `Delete ${lead.title} permanently` : 'Delete is disabled'}
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -717,9 +731,18 @@ export const LeadsView: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setDeleteConfirmLead(lead)}
-                              className="w-7 h-7 flex items-center justify-center text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-                              title="Delete permanently"
+                              disabled={!deleteEnabled}
+                              aria-disabled={!deleteEnabled}
+                              onClick={() => {
+                                if (deleteEnabled) setDeleteConfirmLead(lead)
+                              }}
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+                                deleteEnabled
+                                  ? 'text-rose-600 hover:bg-rose-50 cursor-pointer'
+                                  : 'text-slate-300 cursor-not-allowed'
+                              }`}
+                              title={deleteEnabled ? 'Delete permanently' : 'Delete is disabled'}
+                              aria-label={deleteEnabled ? 'Delete permanently' : 'Delete is disabled'}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

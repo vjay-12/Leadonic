@@ -7,6 +7,7 @@ import { SchoolContact, SchoolMeeting } from '../../types'
 import { formatDateMedium, formatDateTimeIST } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
+import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import {
   ArrowLeft,
   MapPin,
@@ -40,6 +41,7 @@ export const SchoolDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const deleteEnabled = useDeleteEnabled()
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -173,7 +175,13 @@ export const SchoolDetailPage: React.FC = () => {
       )
       navigate('/school-erp')
     },
-    onError: (err: any) => toastError(err.message || 'Failed to delete school'),
+    onError: (err: any) => {
+      if (err?.status === 403 || err?.message?.toLowerCase().includes('delete is disabled')) {
+        toastError('Delete is disabled')
+      } else {
+        toastError(err.message || 'Failed to delete school')
+      }
+    },
   })
 
   // Contact Mutations
@@ -394,8 +402,18 @@ export const SchoolDetailPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                disabled={!deleteEnabled}
+                aria-disabled={!deleteEnabled}
+                onClick={() => {
+                  if (deleteEnabled) setShowDeleteConfirm(true)
+                }}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold rounded-lg transition-colors shadow-2xs ${
+                  deleteEnabled
+                    ? 'text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 cursor-pointer'
+                    : 'text-slate-400 bg-slate-50 border border-slate-200 cursor-not-allowed opacity-60'
+                }`}
+                title={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
+                aria-label={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-600" />
                 <span>Delete</span>

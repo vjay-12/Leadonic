@@ -25,6 +25,7 @@ cp .env.example .env
 | `DIRECT_URL` | Direct unpooled Neon connection URL (for migrations) | `postgresql://user:pass@ep-*.neon.tech/neondb?sslmode=require` |
 | `APP_PASSWORD` | Single shared authentication password | e.g. `secretpassword123` |
 | `SESSION_SECRET` | Secret key used for signing session cookies | 32+ character random secret string |
+| `ALLOW_DELETE` | Server switch to permit permanent deletion of leads and schools (`DELETE /api/leads/:id` and `DELETE /api/schools/:id`) | `false` (default/disabled). Set to `"true"` to enable permanent delete. Missing, empty, or other values remain disabled. |
 
 ---
 

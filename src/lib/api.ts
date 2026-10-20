@@ -13,6 +13,7 @@ import {
   SchoolMeeting,
   School,
   SchoolsResponse,
+  AppConfig,
 } from '../types'
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
@@ -58,6 +59,11 @@ export const api = {
 
   async checkAuth(): Promise<{ ok: boolean }> {
     return request('/api/auth/me')
+  },
+
+  // App Config
+  async getConfig(): Promise<AppConfig> {
+    return request('/api/config')
   },
 
   // Statuses
