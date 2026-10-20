@@ -591,4 +591,49 @@ Leadonic provides an environment-controlled safety mechanism for the permanent d
   - When `deleteEnabled` is `true`: Operates normally, opening the permanent deletion confirmation modal.
   - Server Error Fallback: If a delete request produces a `403` status, a toast displaying `"Delete is disabled"` is presented.
 
+---
+
+## 15. Lead Detail Page Window-Fill & Contact History Overhaul
+
+The Lead detail page (`/leads/:id`) was refined to eliminate side margins, stretch to full window height, display balanced key figures, standardize tile baselines, and simplify the Contact History table.
+
+### 15.1 Full-Width Window-Filling Layout
+- **Unified Container**: Removed `max-w-6xl mx-auto` and `max-w-5xl mx-auto` constraints from `LeadDetailPage` and `SchoolDetailPage`. Cards now span the full width from the 220px sidebar to the right edge with uniform 20px side padding (`px-5`) and 14px top padding (`pt-3.5`).
+- **Full Viewport Stretching**:
+  - `AppLayout` inner container uses `flex-1 w-full min-w-0 px-5 pt-3.5 pb-3 flex flex-col`.
+  - `LeadDetailPage` uses `w-full flex-1 flex flex-col space-y-3`.
+  - The Contact History card uses `flex-1 flex flex-col` so it expands to consume all remaining vertical space in the viewport.
+  - Empty state (`No contacts logged yet`) is centered both vertically and horizontally within the stretched card.
+  - When records overflow the viewport, the table expands and the page scrolls naturally.
+- **Pinned Bottom Metadata**: The thin metadata line (`Created ... · Updated ... · Import ...`) is pinned below the stretched card with 12px top margin (`mt-3 text-[11px] text-slate-400 text-center`).
+
+### 15.2 Header Card: 4 Key Figures
+- **Title Block (Left)**: 44px initials avatar, badges row (category, status pill, priority, lead ID, archived tag), 20px bold title, 13px address link with map pin icon.
+- **Key Figures Row (Right)**: 4 equal cells (minimum width 120px) separated by thin vertical dividers (`divide-x divide-slate-100`):
+  1. `LAST CONTACT`: Date formatted as medium date; second line: `"N contacts recorded"` or `"Never contacted"`.
+  2. `CONTACTS`: Count of logs; second line: `"N total logs"` or `"No history"`.
+  3. `RATING`: Value with amber star icon; second line: `"N reviews"` or `"No rating"`.
+  4. `PRIORITY`: High / Medium / Low badge value; second line: `"Score N"` or `"No score"`.
+  - Missing or null values fall back cleanly to `"—"`.
+
+### 15.3 Contact Details Tile Baseline Alignment
+- All 3 tiles (Phone, Emails, Website) standardize on an exact 76px height (`h-[76px]`) with identical typography vertical metrics:
+  - Label: `h-3.5 text-[10.5px] uppercase font-semibold leading-none`
+  - Value: `h-5 text-[14px] font-medium leading-5`
+  - Subtitle / Action link: `h-4 text-[11.5px] font-medium leading-4`
+- The Website URL sits on the exact same horizontal baseline as Phone and Emails, reserving the 3rd line space (`Opens in new tab` external link) to ensure baseline harmony across the card.
+
+### 15.4 Simplified 3-Column Contact History Table
+- **Removed Clutter**:
+  - Actions column (edit and delete icons) removed from the table rows.
+  - Redundant Recorded date column removed; Contact Date is the authoritative record date.
+- **3 Core Columns**:
+  1. `DATE`: Fixed width (140px, `w-[140px]`), semibold text.
+  2. `STATUS`: Centered fixed width matching the universal pill width plus padding (`w-[calc(var(--status-pill-width,107px)+24px)]`).
+  3. `NOTES`: Takes the remaining width. Fully wrapped without truncation or line clamps (`break-words whitespace-pre-wrap`), naturally expanding table rows to fit long notes. Displays a muted `"—"` when empty.
+- **Row & Header Dimensions**:
+  - Header row: 36px (`h-9`), uppercase 11px tracking-wider.
+  - Body rows: Minimum 44px (`min-h-[44px]`), thin 1px dividers between rows.
+  - Card header displays total record count (`N records` / `N record`) on the right.
+
 

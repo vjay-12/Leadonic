@@ -102,8 +102,8 @@ export const AppLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area: 20px padding sides, 14px at top, no empty top gap */}
-      <main className="flex-1 lg:pl-[220px] min-w-0 flex flex-col pt-12 lg:pt-0">
-        <div className="flex-1 w-full min-w-0 px-5 pt-3.5 pb-6">
+      <main className="flex-1 lg:pl-[220px] min-w-0 flex flex-col pt-12 lg:pt-0 min-h-screen">
+        <div className="flex-1 w-full min-w-0 px-5 pt-3.5 pb-3 flex flex-col">
           <Outlet />
         </div>
       </main>

@@ -252,7 +252,7 @@ export const SchoolDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="space-y-6 w-full">
         <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
         <div className="h-44 bg-white border border-slate-200 rounded-xl animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -334,7 +334,7 @@ export const SchoolDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-3 pb-6">
+    <div className="w-full space-y-3 pb-6">
       {/* 1. Top Action Toolbar Row (Outside & Above Header Card) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5">
         <Link
