@@ -48,17 +48,31 @@ importRouter.post('/', async (req: Request, res: Response) => {
     // Step 1: Pre-process rows, validate titles, compute dedupe keys
     const validRowsToInsert: any[] = []
     const errors: { row: number; reason: string }[] = []
-    const seenDedupeKeysInFile = new Set<string>()
+    const seenDedupeKeysInFile = new Map<string, number>()
     let fileDuplicatesCount = 0
 
     // Collect dedupe keys to query existing DB leads in one batch
     const candidateDedupeKeys: string[] = []
+    const rowResults: {
+      index: number
+      check: 'ready' | 'duplicate' | 'duplicate_in_file' | 'error'
+      reason?: string
+      existingLeadId?: number
+      existingTitle?: string
+      firstRowIndex?: number
+    }[] = Array.from({ length: rows.length })
 
     rows.forEach((row, idx) => {
       const rowNum = idx + 1
       const title = (row['title'] || row['name'] || '').toString().trim()
       if (!title) {
-        errors.push({ row: rowNum, reason: 'Missing title / name' })
+        const reason = 'Missing title / name'
+        errors.push({ row: rowNum, reason })
+        rowResults[idx] = {
+          index: idx,
+          check: 'error',
+          reason,
+        }
         return
       }
 
@@ -69,12 +83,21 @@ importRouter.post('/', async (req: Request, res: Response) => {
 
       if (seenDedupeKeysInFile.has(dedupeKey)) {
         fileDuplicatesCount++
+        const firstIdx = seenDedupeKeysInFile.get(dedupeKey)!
+        rowResults[idx] = {
+          index: idx,
+          check: 'duplicate_in_file',
+          reason: `Duplicate of row #${firstIdx + 1}`,
+          firstRowIndex: firstIdx,
+        }
         return
       }
-      seenDedupeKeysInFile.add(dedupeKey)
+
+      seenDedupeKeysInFile.set(dedupeKey, idx)
       candidateDedupeKeys.push(dedupeKey)
 
       validRowsToInsert.push({
+        idx,
         rowNum,
         title,
         phone: phoneRaw,
@@ -98,19 +121,50 @@ importRouter.post('/', async (req: Request, res: Response) => {
       })
     })
 
-    // Step 2: Query DB for already existing dedupeKeys
-    const existingDbLeads = await prisma.lead.findMany({
-      where: {
-        dedupeKey: { in: candidateDedupeKeys },
-      },
-      select: { dedupeKey: true, archivedAt: true },
+    // Step 2: Query DB for already existing dedupeKeys in one batched query
+    const existingDbLeads: { id: number; title: string; dedupeKey: string; archivedAt: Date | null }[] = []
+    const QUERY_CHUNK_SIZE = 1000
+    for (let i = 0; i < candidateDedupeKeys.length; i += QUERY_CHUNK_SIZE) {
+      const keysSlice = candidateDedupeKeys.slice(i, i + QUERY_CHUNK_SIZE)
+      const found = await prisma.lead.findMany({
+        where: { dedupeKey: { in: keysSlice } },
+        select: { id: true, title: true, dedupeKey: true, archivedAt: true },
+      })
+      existingDbLeads.push(...found)
+    }
+
+    const existingDbMap = new Map<string, { id: number; title: string; archivedAt: Date | null }>()
+    for (const l of existingDbLeads) {
+      existingDbMap.set(l.dedupeKey, l)
+    }
+
+    let skippedArchivedCount = 0
+    let dbDuplicatesCount = 0
+
+    validRowsToInsert.forEach((r) => {
+      const existing = existingDbMap.get(r.dedupeKey)
+      if (existing) {
+        dbDuplicatesCount++
+        if (existing.archivedAt != null) skippedArchivedCount++
+        rowResults[r.idx] = {
+          index: r.idx,
+          check: 'duplicate',
+          reason: existing.archivedAt
+            ? `Matches archived lead #${existing.id} "${existing.title}"`
+            : `Matches existing lead #${existing.id} "${existing.title}"`,
+          existingLeadId: existing.id,
+          existingTitle: existing.title,
+        }
+      } else {
+        rowResults[r.idx] = {
+          index: r.idx,
+          check: 'ready',
+        }
+      }
     })
 
-    const existingDbDedupeKeys = new Set(existingDbLeads.map((l) => l.dedupeKey))
-    const skippedArchivedCount = existingDbLeads.filter((l) => l.archivedAt != null).length
-    const totalDuplicates = fileDuplicatesCount + existingDbDedupeKeys.size
-
-    const rowsToCreate = validRowsToInsert.filter((r) => !existingDbDedupeKeys.has(r.dedupeKey))
+    const totalDuplicates = fileDuplicatesCount + dbDuplicatesCount
+    const rowsToCreate = validRowsToInsert.filter((r) => !existingDbMap.has(r.dedupeKey))
     const willAdd = rowsToCreate.length
 
     if (dryRun) {
@@ -119,6 +173,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
         duplicates: totalDuplicates,
         skippedArchivedCount,
         errors,
+        rows: rowResults,
       })
     }
 

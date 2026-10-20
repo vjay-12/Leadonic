@@ -162,11 +162,21 @@ export interface ReportData {
   grandTotal: number
 }
 
+export interface ImportRowCheckResult {
+  index: number
+  check: 'ready' | 'duplicate' | 'duplicate_in_file' | 'error'
+  reason?: string
+  existingLeadId?: number
+  existingTitle?: string
+  firstRowIndex?: number
+}
+
 export interface ImportPreviewResult {
   willAdd: number
   duplicates: number
   skippedArchivedCount?: number
   errors: { row: number; reason: string }[]
+  rows: ImportRowCheckResult[]
 }
 
 export interface ImportChunkResult {

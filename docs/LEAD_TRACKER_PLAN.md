@@ -636,4 +636,59 @@ The Lead detail page (`/leads/:id`) was refined to eliminate side margins, stret
   - Body rows: Minimum 44px (`min-h-[44px]`), thin 1px dividers between rows.
   - Card header displays total record count (`N records` / `N record`) on the right.
 
+---
+
+## 16. Import Wizard Step 2 ("Mapping & Dry Run") Overhaul
+
+Step 2 of the spreadsheet import wizard was re-engineered into a high-performance, full-file validation and interactive row selection workspace.
+
+### 16.1 All-Row Detail & High-Performance Virtualization
+- **Full File Preview**: Replaced the previous 10-row slice with a table rendering all rows in the spreadsheet using `@tanstack/react-virtual`, smoothly scrolling datasets with thousands of rows (verified up to 3,000+ rows) without DOM bloat.
+- **Full Cell Text Wrapping**: Every column found in the spreadsheet is displayed with up to 3 lines of wrapped text (`line-clamp-3 leading-snug break-words`), no cut-offs, and full cell value available on hover via tooltip (`title`).
+- **Mapped vs. Unmapped Columns**: Unmapped columns retain their file position with a muted header and `not imported` chip. Mapped columns display the target lead field name (`→ Phone`, etc.).
+- **Sticky Column Architecture**:
+  - Checkbox (`w-9`, `sticky left-0`)
+  - Row number `#` (`w-12`, `sticky left-9`)
+  - Check status badge (`w-[140px]`, `sticky left-[84px]`)
+  - Title column (`w-52`, `sticky left-[224px]`) with border and subtle drop shadow
+  - Header row sticky at the top (`sticky top-0 bg-slate-50 z-20`)
+  - Table scrolls horizontally and vertically inside its dedicated container; the dialog itself never scrolls.
+- **Check Status Badges**:
+  - `Ready` (emerald green): Valid for import.
+  - `Duplicate` (amber): Matches an existing lead in the database, with tooltip indicating existing lead title, ID, and archived status.
+  - `Duplicate in file` (amber): Repeats a lead within the uploaded file, indicating the original row index it duplicates.
+  - `Error` (rose red): Validation issue (e.g. missing title/name), with reason tooltip.
+- **Dialog Sizing**: Sized to `w-[min(1200px, 96vw)]` and `h-[90vh]` as a flex column. On mobile devices (<640px), scales to full screen.
+
+### 16.2 Pre-Import Selection & Filter Toolbar
+- **Interactive Checkboxes**:
+  - Checkbox on every row; `Ready` rows are checked by default. `Duplicate` and `Error` rows are unchecked and disabled.
+  - Header select all / none checkbox supporting indeterminate state when partially selected.
+  - Shift-click range selection across rows.
+  - Quick action links: `Select all ready` and `Clear selection`.
+- **Compact Stat Strip**: Displays `Selected: X of Y ready (Total)`, `Duplicates: D`, and `Errors: E` in a single compact horizontal strip.
+- **Filter Toolbar**:
+  - Filter chips: `All (N)`, `Ready (R)`, `Duplicates (D)`, `Errors (E)`.
+  - `Selected only (X)` toggle checkbox.
+  - Real-time search box matching lead title or cell text across the sheet.
+- **Live Footer Action**:
+  - Button text updates live (`Import X Leads`). Disabled when 0 rows are selected.
+  - Only selected rows are submitted to the server in chunks of 500.
+- **Step 3 Summary**:
+  - Displays three clear metrics: `Added` (inserted leads), `Skipped as duplicates` (duplicates caught during database insertion), and `Not selected` (rows unchecked by the user).
+
+### 16.3 Collapsible Mapping Section
+- Header matching section is collapsible with a one-line summary: `"14 matched, 3 not imported"`.
+- Collapsed by default when the Title field is mapped; expanded if Title is unmapped.
+- When expanded, renders a clean 2-column grid without nested inner scrollbars.
+- Automatically re-runs validation preview debounced at 400ms when any mapping selector changes (manual re-run button removed).
+- Preserves user row selection states for rows whose check status did not change across mapping updates.
+
+### 16.4 Backend Architecture (`POST /api/leads/import`)
+- Extended dry run response with per-row results: `rows: [{ index, check: "ready" | "duplicate" | "duplicate_in_file" | "error", reason?, existingLeadId?, existingTitle?, firstRowIndex? }]`.
+- Single batched database query using `in` clauses chunked in blocks of 1,000 candidate dedupe keys to prevent query parameter limits.
+- Pre-checks intra-file duplicates to identify repeated entries before database queries.
+- Re-verifies deduplication at actual import time to guard against race conditions.
+
+
 

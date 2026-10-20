@@ -26,3 +26,5 @@ dist-ssr
 *.sw?
 test-results/
 tests/screenshots/
+samples/*.xlsx
+!samples/sample-leads.xlsx
