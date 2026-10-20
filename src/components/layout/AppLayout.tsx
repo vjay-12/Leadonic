@@ -65,8 +65,8 @@ export const AppLayout: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation Links: 36px tall, ~17.5px text, ~19px icons */}
-        <nav className="flex-1 px-2.5 py-3 space-y-0.5">
+        {/* Navigation Links: ~15.5px text, 18px icons, clean vertical spacing */}
+        <nav className="flex-1 px-2.5 py-3 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive =
@@ -79,14 +79,14 @@ export const AppLayout: React.FC = () => {
                 key={item.to}
                 to={item.to}
                 onClick={closeMobile}
-                className={`h-9 flex items-center gap-2.5 px-3 text-[17.5px] rounded-lg transition-colors leading-none ${
+                className={`h-[38px] flex items-center gap-3 px-3 text-[15.5px] rounded-lg transition-colors ${
                   isActive
                     ? 'bg-blue-50 text-blue-700 font-semibold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
                 }`}
               >
-                <Icon className={`w-[19px] h-[19px] shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span className="truncate">{item.label}</span>
+                <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <span className="truncate leading-normal py-0.5">{item.label}</span>
               </NavLink>
             )
           })}
@@ -96,10 +96,10 @@ export const AppLayout: React.FC = () => {
         <div className="p-2.5 border-t border-slate-100">
           <button
             onClick={() => logout()}
-            className="w-full h-9 flex items-center gap-2.5 px-3 text-[15.5px] font-medium text-slate-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer leading-none"
+            className="w-full h-[38px] flex items-center gap-3 px-3 text-[15.5px] font-medium text-slate-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
           >
-            <LogOut className="w-[19px] h-[19px] text-slate-400 shrink-0" />
-            <span>Sign Out</span>
+            <LogOut className="w-[18px] h-[18px] text-slate-400 shrink-0" />
+            <span className="leading-normal py-0.5">Sign Out</span>
           </button>
         </div>
       </aside>
