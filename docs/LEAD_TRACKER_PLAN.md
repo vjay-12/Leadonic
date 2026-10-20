@@ -750,6 +750,70 @@ Across the entire application, all native `<select>` dropdowns, browser `confirm
   - Clean error handling: If server returns 409 Conflict (e.g. status or category in use), the server message is displayed in a toast notification and data remains unchanged.
   - ESLint / oxlint `"no-alert": "error"` rule configured to prevent native browser dialogs from returning.
 
+---
 
+## 18. Priority Conversion in Spreadsheet Import
 
+Leadonic spreadsheet import supports automated priority derivation converting raw priority scores (`0.00` to `5.00`) and legacy priority labels (`low`, `cool`, `warm`, `hot`) to standardized Leadonic priorities (`High`, `Medium`, `Low`).
 
+### 18.1 Shared Conversion Helper (`lib/priority.ts`)
+- **Shared ESM Module**: Cross-compatible with client and Node.js server (`backend/src/routes/import.ts`).
+- **Core Priority Type**: `type Priority = "High" | "Medium" | "Low"`.
+- **Score Conversion (`priorityFromScore`)**:
+  - `0 <= score < mediumFrom`: Returns `"Low"`.
+  - `mediumFrom <= score < highFrom`: Returns `"Medium"`.
+  - `highFrom <= score <= 5`: Returns `"High"`.
+  - Default thresholds: `mediumFrom = 2`, `highFrom = 4` (0–1 Low, 2–3 Medium, 4–5 High, supporting decimals like 1.5 -> Low, 3.5 -> Medium).
+- **Score Parsing (`parseScore`)**: Accepts numbers and trimmed numeric strings (e.g., `" 4.5 "`). Excludes booleans, empty strings, and non-numeric values. Returns `null` if value < 0 or > 5.
+- **Label Fallback (`priorityFromLabel`)**: Used when a row lacks a valid score:
+  - `low` -> `"Low"`
+  - `cool` -> `"Medium"`
+  - `warm` -> `"Medium"`
+  - `hot` -> `"High"`
+  - `high` / `medium` / `low` -> retained case-insensitively as `"High"` / `"Medium"` / `"Low"`.
+  - Any unrecognized string -> returns `null`.
+- **Threshold Validation (`validateThresholds`)**: Strict bounds `0 < mediumFrom <= highFrom <= 5`.
+- **Row Conversion Pipeline (`convertPriority`)**: Evaluates valid score first with custom thresholds; falls back to label if score is invalid or missing; when conversion is toggled off, retains only existing High/Medium/Low label text.
+
+### 18.2 Import Dialog Step 2: Live Preview & Adjust Panel
+- **Priority Conversion Panel**: Positioned between the stat strip and virtualized preview table:
+  - **Apply Conversion Checkbox**: Default ON when `priority_score` is mapped; disabled with tooltip hint `"Map priority_score to enable"` when unmapped.
+  - **Live Summary**: Real-time counter over selected rows: `"Low X · Medium Y · High Z · Not set W"`.
+  - **Adjust Controls**: Collapsible panel with 32px number inputs for "Medium starts at score" (step 0.1, min 0.1, max 5) and "High starts at score" (step 0.1, min 0.1, max 5).
+  - **Live Dynamic Guidance**: Formats `"Low: below M · Medium: M to below H · High: H to 5"`.
+  - **Inline Threshold Validation**: Displays validation warning if `mediumFrom <= 0`, `highFrom > 5`, or `mediumFrom > highFrom`. Holds last valid thresholds for live counts. Includes `"Reset to 2 / 4"` quick reset link.
+- **Preview Table Converted Priority Column**:
+  - Dynamically injected immediately after the mapped `priority_score` column (or `priority` column if score is unmapped).
+  - Displays `"score -> Badge"` (e.g. `"4 -> High"`) using the Leadonic list badge component.
+  - Adds a muted `"from label"` micro-tag when derived from label fallback.
+  - Invalid scores with no fallback display a muted `"Not set"` chip with hover tooltip detailing the reason (e.g., `"Score 7 is outside 0-5"`).
+  - Warnings do not block import or alter the row's Check status (`Ready`).
+  - Browser-side exact computation: browser sends pre-converted priority and score directly to server.
+
+### 18.3 Confirmation Modal & Step 3 Summary
+- **Import Confirmation Modal**:
+  - When "Apply conversion" is active and at least one selected row contains a score or label, clicking "Import N Leads" prompts the shared `ConfirmDialog`.
+  - Title: `"Import N leads?"`
+  - Body text: `"Priority will be set from the score: 0-M Low (X), M-H Medium (Y), H-5 High (Z). W leads will have no priority."` (dynamically reflecting active thresholds and selected counts).
+  - Cancel returns to Step 2 with all states preserved; Confirm proceeds to import. Skipped when no priorities are being converted.
+- **Step 3 Summary**:
+  - In addition to Added / Skipped / Not selected metrics, displays a 4-card priority breakdown: `High`, `Medium`, `Low`, and `No priority`.
+
+### 18.4 Server Import API (`POST /api/leads/import`)
+- **Row Zod Validation**:
+  - `priority`: Validated against `PriorityEnumSchema` (`"High" | "Medium" | "Low"` or `null`). Invalid values become `null` and increment `warningsCount`.
+  - `priorityScore`: Validated against `PriorityScoreSchema` (finite number `0 <= score <= 5` or `null`).
+  - Server does not re-derive priority, strictly honoring user-adjusted thresholds calculated in the browser.
+- **Response Payloads**:
+  - Dry run response includes total `warnings` count.
+  - Chunked import response returns `priorityCounts: { High, Medium, Low, none }`.
+
+### 18.5 Database Normalization Script (`scripts/normalize-priorities.ts`)
+- Standalone CLI utility using `@prisma/client` and `lib/priority.ts`.
+- Targets existing leads where priority is not High, Medium, or Low, or is null while `priority_score` is present.
+- Dry run by default: logs total candidates, conversion breakdown, and 10 sample lead conversions without mutating data.
+- `--apply` flag required for committing updates in transactional chunks.
+
+### 18.6 Sample Dataset & Test Suite
+- **Sample Generator (`samples/generate-sample.ts`)**: Generates 13 test leads covering scores 0, 1, 1.5, 1.99, 2, 3, 3.99, 4, 5, empty scores with "warm" and "hot", invalid score "n/a", and out-of-range score 7.
+- **Unit Test Suite (`tests/priority.test.ts`)**: 17 automated tests verifying `parseScore`, boundary conversions, custom thresholds, label fallbacks, and `convertPriority` pipeline.

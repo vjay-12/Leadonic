@@ -5,6 +5,9 @@ import fs from 'fs'
 import { prisma } from '../db.js'
 import { normalizePhone, makeDedupeKey, parseBool, parseNum } from '../../../lib/normalize.js'
 
+const PriorityEnumSchema = z.enum(['High', 'Medium', 'Low']).nullable().optional()
+const PriorityScoreSchema = z.number().min(0).max(5).nullable().optional()
+
 export const importRouter = Router()
 
 const ImportRequestSchema = z.object({
@@ -48,6 +51,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
     // Step 1: Pre-process rows, validate titles, compute dedupe keys
     const validRowsToInsert: any[] = []
     const errors: { row: number; reason: string }[] = []
+    let warningsCount = 0
     const seenDedupeKeysInFile = new Map<string, number>()
     let fileDuplicatesCount = 0
 
@@ -96,6 +100,39 @@ importRouter.post('/', async (req: Request, res: Response) => {
       seenDedupeKeysInFile.set(dedupeKey, idx)
       candidateDedupeKeys.push(dedupeKey)
 
+      // Validate priority with Zod: must be 'High' | 'Medium' | 'Low' or null
+      // Anything else becomes null and counts as a warning
+      let priority: 'High' | 'Medium' | 'Low' | null = null
+      const rawPriority = row['priority']
+      if (rawPriority !== undefined && rawPriority !== null && String(rawPriority).trim() !== '') {
+        const priParsed = PriorityEnumSchema.safeParse(rawPriority)
+        if (priParsed.success && priParsed.data) {
+          priority = priParsed.data
+        } else {
+          priority = null
+          warningsCount++
+        }
+      }
+
+      // Validate priorityScore with Zod: must be a number from 0 to 5 or it becomes null
+      let priorityScore: number | null = null
+      const rawScore = row['priorityScore']
+      if (rawScore !== undefined && rawScore !== null && String(rawScore).trim() !== '') {
+        const numVal = typeof rawScore === 'number' ? rawScore : Number(rawScore)
+        const scoreParsed = PriorityScoreSchema.safeParse(numVal)
+        if (
+          scoreParsed.success &&
+          scoreParsed.data !== null &&
+          scoreParsed.data !== undefined &&
+          !isNaN(scoreParsed.data)
+        ) {
+          priorityScore = scoreParsed.data
+        } else {
+          priorityScore = null
+          warningsCount++
+        }
+      }
+
       validRowsToInsert.push({
         idx,
         rowNum,
@@ -113,8 +150,8 @@ importRouter.post('/', async (req: Request, res: Response) => {
         needsWebsite: row['needsWebsite'] != null ? parseBool(row['needsWebsite']) : null,
         erpMatch: row['erpMatch'] != null ? String(row['erpMatch']).trim() : null,
         needsErp: row['needsErp'] != null ? parseBool(row['needsErp']) : null,
-        priorityScore: row['priorityScore'] != null ? parseNum(row['priorityScore']) : null,
-        priority: row['priority'] != null ? String(row['priority']).trim() : null,
+        priorityScore,
+        priority,
         remarks: row['remarks'] != null ? String(row['remarks']).trim() : null,
         statusId: null,
         categoryId,
@@ -172,6 +209,7 @@ importRouter.post('/', async (req: Request, res: Response) => {
         willAdd,
         duplicates: totalDuplicates,
         skippedArchivedCount,
+        warnings: warningsCount,
         errors,
         rows: rowResults,
       })
@@ -231,10 +269,20 @@ importRouter.post('/', async (req: Request, res: Response) => {
       },
     })
 
+    const priorityCounts = { High: 0, Medium: 0, Low: 0, none: 0 }
+    rowsToCreate.forEach((r) => {
+      if (r.priority === 'High') priorityCounts.High++
+      else if (r.priority === 'Medium') priorityCounts.Medium++
+      else if (r.priority === 'Low') priorityCounts.Low++
+      else priorityCounts.none++
+    })
+
     return res.json({
       added: willAdd,
       skipped: totalDuplicates,
       skippedArchivedCount,
+      warnings: warningsCount,
+      priorityCounts,
       errors,
       batchId,
     })

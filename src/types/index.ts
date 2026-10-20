@@ -175,6 +175,7 @@ export interface ImportPreviewResult {
   willAdd: number
   duplicates: number
   skippedArchivedCount?: number
+  warnings?: number
   errors: { row: number; reason: string }[]
   rows: ImportRowCheckResult[]
 }
@@ -183,6 +184,13 @@ export interface ImportChunkResult {
   added: number
   skipped: number
   skippedArchivedCount?: number
+  warnings?: number
+  priorityCounts?: {
+    High: number
+    Medium: number
+    Low: number
+    none: number
+  }
   errors: { row: number; reason: string }[]
   batchId: number
 }

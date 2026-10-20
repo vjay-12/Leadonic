@@ -4,8 +4,10 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { LeadCategory, ImportRowCheckResult } from '../../types'
 import { HEADER_TO_FIELD } from '../../../lib/normalize'
+import { convertPriority, validateThresholds } from '../../../lib/priority'
 import {
   X,
   Upload,
@@ -55,6 +57,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 }) => {
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const confirm = useConfirm()
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -118,8 +121,25 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     skipped: number
     skippedArchivedCount?: number
     notSelected: number
+    priorityCounts: {
+      High: number
+      Medium: number
+      Low: number
+      none: number
+    }
     errors: { row: number; reason: string }[]
   } | null>(null)
+
+  // Priority conversion panel state
+  const [applyConversion, setApplyConversion] = useState(true)
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false)
+  const [mediumInput, setMediumInput] = useState('2')
+  const [highInput, setHighInput] = useState('4')
+  const [validThresholds, setValidThresholds] = useState<{ medium: number; high: number }>({
+    medium: 2,
+    high: 4,
+  })
+  const [thresholdError, setThresholdError] = useState<string | null>(null)
 
   // Table container ref for virtualization
   const tableContainerRef = useRef<HTMLDivElement>(null)
@@ -169,6 +189,12 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     setImportProgress(0)
     setIsImporting(false)
     setImportSummary(null)
+    setApplyConversion(true)
+    setIsAdjustOpen(false)
+    setMediumInput('2')
+    setHighInput('4')
+    setValidThresholds({ medium: 2, high: 4 })
+    setThresholdError(null)
   }
 
   const handleQuickAddCategory = async (e: React.FormEvent) => {
@@ -222,8 +248,89 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     }
   }
 
-  // Map rows according to specified mapping
+  // Header detection for priorityScore and priority fields
+  const scoreHeader = useMemo(
+    () => Object.keys(columnMapping).find((h) => columnMapping[h] === 'priorityScore'),
+    [columnMapping]
+  )
+  const priorityHeader = useMemo(
+    () => Object.keys(columnMapping).find((h) => columnMapping[h] === 'priority'),
+    [columnMapping]
+  )
+  const isScoreMapped = Boolean(scoreHeader)
+  const isPriorityMapped = Boolean(priorityHeader)
+  const hasConvertedCol = isScoreMapped || (!isScoreMapped && isPriorityMapped)
+  const targetPriorityColHeader = scoreHeader || priorityHeader
+
+  // Sync applyConversion when priority_score mapping status changes
+  useEffect(() => {
+    if (isScoreMapped) {
+      setApplyConversion(true)
+    } else {
+      setApplyConversion(false)
+    }
+  }, [isScoreMapped])
+
+  const handleThresholdChange = (medStr: string, hiStr: string) => {
+    setMediumInput(medStr)
+    setHighInput(hiStr)
+    const medNum = Number(medStr)
+    const hiNum = Number(hiStr)
+    if (
+      medStr.trim() === '' ||
+      hiStr.trim() === '' ||
+      isNaN(medNum) ||
+      isNaN(hiNum) ||
+      !validateThresholds(medNum, hiNum)
+    ) {
+      setThresholdError('Thresholds must satisfy: 0 < Medium starts at ≤ High starts at ≤ 5')
+    } else {
+      setThresholdError(null)
+      setValidThresholds({ medium: medNum, high: hiNum })
+    }
+  }
+
+  const handleResetThresholds = () => {
+    setMediumInput('2')
+    setHighInput('4')
+    setValidThresholds({ medium: 2, high: 4 })
+    setThresholdError(null)
+  }
+
+  // Live priority counts covering only currently selected rows
+  const priorityCounts = useMemo(() => {
+    let low = 0
+    let medium = 0
+    let high = 0
+    let notSet = 0
+
+    selectedIndices.forEach((idx) => {
+      const row = rawRows[idx]
+      if (!row) return
+      const rowScore = scoreHeader ? row[scoreHeader] : undefined
+      const rowLabel = priorityHeader ? row[priorityHeader] : undefined
+      const conv = convertPriority(
+        rowScore,
+        rowLabel,
+        applyConversion && isScoreMapped,
+        validThresholds.medium,
+        validThresholds.high
+      )
+      if (conv.priority === 'Low') low++
+      else if (conv.priority === 'Medium') medium++
+      else if (conv.priority === 'High') high++
+      else notSet++
+    })
+
+    return { low, medium, high, notSet }
+  }, [rawRows, selectedIndices, scoreHeader, priorityHeader, applyConversion, isScoreMapped, validThresholds])
+
+  // Map rows according to specified mapping, injecting converted priority & score
   const getMappedRows = (mapping: Record<string, string>) => {
+    const sHeader = Object.keys(mapping).find((h) => mapping[h] === 'priorityScore')
+    const pHeader = Object.keys(mapping).find((h) => mapping[h] === 'priority')
+    const scoreMapped = Boolean(sHeader)
+
     return rawRows.map((raw) => {
       const mapped: Record<string, any> = {}
       for (const [header, field] of Object.entries(mapping)) {
@@ -231,6 +338,19 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
           mapped[field] = raw[header]
         }
       }
+
+      const rawSc = sHeader ? raw[sHeader] : undefined
+      const rawLb = pHeader ? raw[pHeader] : undefined
+      const conv = convertPriority(
+        rawSc,
+        rawLb,
+        applyConversion && scoreMapped,
+        validThresholds.medium,
+        validThresholds.high
+      )
+      mapped['priority'] = conv.priority
+      mapped['priorityScore'] = conv.priorityScore
+
       return mapped
     })
   }
@@ -502,6 +622,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     let totalAdded = 0
     let totalSkipped = 0
     let totalSkippedArchived = 0
+    const totalPriorityCounts = { High: 0, Medium: 0, Low: 0, none: 0 }
     const allErrors: { row: number; reason: string }[] = []
 
     try {
@@ -518,6 +639,12 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
         totalAdded += res.added
         totalSkipped += res.skipped
         totalSkippedArchived += res.skippedArchivedCount || 0
+        if (res.priorityCounts) {
+          totalPriorityCounts.High += res.priorityCounts.High
+          totalPriorityCounts.Medium += res.priorityCounts.Medium
+          totalPriorityCounts.Low += res.priorityCounts.Low
+          totalPriorityCounts.none += res.priorityCounts.none
+        }
         if (res.errors) allErrors.push(...res.errors)
 
         const pct = Math.round(((i + 1) / totalChunks) * 100)
@@ -529,6 +656,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
         skipped: totalSkipped,
         skippedArchivedCount: totalSkippedArchived,
         notSelected: notSelectedCount,
+        priorityCounts: totalPriorityCounts,
         errors: allErrors,
       })
       await queryClient.invalidateQueries({ queryKey: ['leads'] })
@@ -541,6 +669,55 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
     } finally {
       setIsImporting(false)
     }
+  }
+
+  // Handle clicking "Import N Leads" with optional Confirmation Dialog
+  const handleImportClick = async () => {
+    if (selectedIndices.size === 0) return
+
+    // If conversion is on and at least one selected row has a score or label, prompt with ConfirmDialog
+    const hasSomethingToConvert =
+      applyConversion &&
+      isScoreMapped &&
+      Array.from(selectedIndices).some((idx) => {
+        const r = rawRows[idx]
+        if (!r) return false
+        const sc = scoreHeader ? r[scoreHeader] : undefined
+        const lb = priorityHeader ? r[priorityHeader] : undefined
+        return (
+          (sc !== null && sc !== undefined && String(sc).trim() !== '') ||
+          (lb !== null && lb !== undefined && String(lb).trim() !== '')
+        )
+      })
+
+    if (hasSomethingToConvert) {
+      const med = validThresholds.medium
+      const hi = validThresholds.high
+      const lowRange = Number.isInteger(med) ? `0-${med - 1}` : `0 to below ${med}`
+      const medRange =
+        Number.isInteger(med) && Number.isInteger(hi)
+          ? `${med}-${hi - 1}`
+          : `${med} to below ${hi}`
+      const hiRange = Number.isInteger(hi) ? `${hi}-5` : `${hi} to 5`
+
+      let msg = `Priority will be set from the score: ${lowRange} Low (${priorityCounts.low}), ${medRange} Medium (${priorityCounts.medium}), ${hiRange} High (${priorityCounts.high}).`
+      if (priorityCounts.notSet > 0) {
+        msg += ` ${priorityCounts.notSet} ${priorityCounts.notSet === 1 ? 'lead' : 'leads'} will have no priority.`
+      }
+
+      const ok = await confirm({
+        title: `Import ${selectedIndices.size} ${selectedIndices.size === 1 ? 'lead' : 'leads'}?`,
+        message: msg,
+        confirmText: 'Import',
+        cancelText: 'Cancel',
+        isDestructive: false,
+        icon: 'info',
+      })
+
+      if (!ok) return
+    }
+
+    await startImport()
   }
 
   const virtualRows = rowVirtualizer.getVirtualItems()
@@ -917,6 +1094,104 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                 </div>
               </div>
 
+              {/* Priority Conversion Panel */}
+              <div className="bg-slate-50 border border-slate-200 rounded-[10px] p-2.5 space-y-2 shrink-0">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                  {/* Left: Checkbox + Hint */}
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="apply-priority-conversion"
+                      className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-800 select-none"
+                    >
+                      <input
+                        id="apply-priority-conversion"
+                        type="checkbox"
+                        checked={applyConversion && isScoreMapped}
+                        disabled={!isScoreMapped}
+                        onChange={(e) => setApplyConversion(e.target.checked)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                      <span>Apply conversion</span>
+                    </label>
+                    {!isScoreMapped && (
+                      <span className="text-[11px] text-slate-400 italic">
+                        (Map priority_score to enable)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Middle: Live Summary */}
+                  <div data-testid="priority-live-summary" className="text-slate-600 font-medium text-[12px]">
+                    <span className="text-slate-800 font-semibold">Low {priorityCounts.low}</span>
+                    <span className="text-slate-300 mx-1.5">·</span>
+                    <span className="text-amber-800 font-semibold">Medium {priorityCounts.medium}</span>
+                    <span className="text-slate-300 mx-1.5">·</span>
+                    <span className="text-rose-800 font-semibold">High {priorityCounts.high}</span>
+                    <span className="text-slate-300 mx-1.5">·</span>
+                    <span className="text-slate-500 font-normal">Not set {priorityCounts.notSet}</span>
+                  </div>
+
+                  {/* Right: Adjust Link */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAdjustOpen(!isAdjustOpen)}
+                      className="text-[12px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>{isAdjustOpen ? 'Close' : 'Adjust'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded Adjust Controls */}
+                {isAdjustOpen && (
+                  <div className="pt-2 border-t border-slate-200/80 space-y-2 text-[12px]">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-600 font-medium">Medium starts at score:</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={mediumInput}
+                          onChange={(e) => handleThresholdChange(e.target.value, highInput)}
+                          className="w-16 h-7 px-2 text-[12.5px] bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600 font-mono"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-600 font-medium">High starts at score:</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={highInput}
+                          onChange={(e) => handleThresholdChange(mediumInput, e.target.value)}
+                          className="w-16 h-7 px-2 text-[12.5px] bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600 font-mono"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleResetThresholds}
+                        className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer underline text-[11.5px]"
+                      >
+                        Reset to 2 / 4
+                      </button>
+                    </div>
+
+                    <div className="text-[11.5px] text-slate-500 font-medium">
+                      Low: below {mediumInput || '?'} · Medium: {mediumInput || '?'} to below {highInput || '?'} · High: {highInput || '?'} to 5
+                    </div>
+
+                    {thresholdError && (
+                      <div className="text-[11.5px] text-rose-600 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{thresholdError}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {dryRunError && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-[10px] flex items-center gap-2 text-[12px] text-rose-700 shrink-0">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -965,24 +1240,39 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                       {rawHeaders.map((header) => {
                         const mappedField = columnMapping[header]
                         const fieldDef = FIELD_OPTIONS.find((f) => f.key === mappedField)
+                        const showConvertedAfter = header === targetPriorityColHeader
+
                         return (
-                          <th
-                            key={header}
-                            className="min-w-[150px] max-w-[260px] px-3 py-1.5 text-left font-semibold text-slate-700 border-r border-slate-100 last:border-r-0"
-                          >
-                            <div className="truncate" title={header}>
-                              {header}
-                            </div>
-                            {mappedField ? (
-                              <div className="text-[10px] text-blue-600 font-semibold normal-case truncate">
-                                → {fieldDef?.label.replace(' (Required)', '') || mappedField}
+                          <React.Fragment key={header}>
+                            <th
+                              className="min-w-[150px] max-w-[260px] px-3 py-1.5 text-left font-semibold text-slate-700 border-r border-slate-100 last:border-r-0"
+                            >
+                              <div className="truncate" title={header}>
+                                {header}
                               </div>
-                            ) : (
-                              <span className="inline-block text-[9.5px] font-normal normal-case text-slate-400 bg-slate-100 px-1 py-0.5 rounded">
-                                not imported
-                              </span>
+                              {mappedField ? (
+                                <div className="text-[10px] text-blue-600 font-semibold normal-case truncate">
+                                  → {fieldDef?.label.replace(' (Required)', '') || mappedField}
+                                </div>
+                              ) : (
+                                <span className="inline-block text-[9.5px] font-normal normal-case text-slate-400 bg-slate-100 px-1 py-0.5 rounded">
+                                  not imported
+                                </span>
+                              )}
+                            </th>
+
+                            {showConvertedAfter && (
+                              <th
+                                key="converted-priority-header"
+                                className="min-w-[140px] max-w-[200px] px-3 py-1.5 text-left font-semibold text-slate-700 border-r border-slate-100 bg-slate-50"
+                              >
+                                <div>Priority</div>
+                                <div className="text-[10px] text-blue-600 font-semibold normal-case">
+                                  → Converted
+                                </div>
+                              </th>
                             )}
-                          </th>
+                          </React.Fragment>
                         )
                       })}
                     </tr>
@@ -991,14 +1281,17 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {paddingTop > 0 && (
                       <tr>
-                        <td style={{ height: `${paddingTop}px` }} colSpan={rawHeaders.length + 4} />
+                        <td
+                          style={{ height: `${paddingTop}px` }}
+                          colSpan={rawHeaders.length + 4 + (hasConvertedCol ? 1 : 0)}
+                        />
                       </tr>
                     )}
 
                     {filteredRows.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={rawHeaders.length + 4}
+                          colSpan={rawHeaders.length + 4 + (hasConvertedCol ? 1 : 0)}
                           className="p-8 text-center text-slate-400 text-[13px]"
                         >
                           No matching rows found.
@@ -1015,6 +1308,16 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                         const titleVal = titleHeader
                           ? row[titleHeader]
                           : row['title'] || row['name'] || '—'
+
+                        const rowScore = scoreHeader ? row[scoreHeader] : undefined
+                        const rowLabel = priorityHeader ? row[priorityHeader] : undefined
+                        const rowConv = convertPriority(
+                          rowScore,
+                          rowLabel,
+                          applyConversion && isScoreMapped,
+                          validThresholds.medium,
+                          validThresholds.high
+                        )
 
                         return (
                           <tr
@@ -1093,21 +1396,87 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                               const isMapped = Boolean(columnMapping[header])
                               const val = row[header]
                               const text = val != null ? String(val).trim() : ''
+                              const showConvertedAfter = header === targetPriorityColHeader
 
                               return (
-                                <td
-                                  key={header}
-                                  className={`min-w-[150px] max-w-[260px] px-3 py-2 border-r border-slate-100 last:border-r-0 align-top ${
-                                    isMapped ? 'text-slate-800' : 'text-slate-400'
-                                  }`}
-                                >
-                                  <div
-                                    className="line-clamp-3 leading-snug break-words text-[12px]"
-                                    title={text}
+                                <React.Fragment key={header}>
+                                  <td
+                                    className={`min-w-[150px] max-w-[260px] px-3 py-2 border-r border-slate-100 last:border-r-0 align-top ${
+                                      isMapped ? 'text-slate-800' : 'text-slate-400'
+                                    }`}
                                   >
-                                    {text || <span className="text-slate-300 font-normal">—</span>}
-                                  </div>
-                                </td>
+                                    <div
+                                      className="line-clamp-3 leading-snug break-words text-[12px]"
+                                      title={text}
+                                    >
+                                      {text || <span className="text-slate-300 font-normal">—</span>}
+                                    </div>
+                                  </td>
+
+                                  {showConvertedAfter && (
+                                    <td
+                                      key="converted-priority-cell"
+                                      className="min-w-[140px] max-w-[200px] px-3 py-2 border-r border-slate-100 align-top bg-white"
+                                    >
+                                      {applyConversion && isScoreMapped ? (
+                                        rowConv.source === 'score' ? (
+                                          <div className="flex items-center gap-1.5 text-[12px]">
+                                            <span className="text-slate-500 font-mono text-[11px]">{rowConv.priorityScore} →</span>
+                                            <span
+                                              className={`px-1.5 py-0.5 rounded text-[11px] font-semibold border ${
+                                                rowConv.priority === 'High'
+                                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                  : rowConv.priority === 'Medium'
+                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                                              }`}
+                                            >
+                                              {rowConv.priority}
+                                            </span>
+                                          </div>
+                                        ) : rowConv.source === 'label' ? (
+                                          <div className="flex items-center gap-1.5 text-[12px]">
+                                            <span
+                                              className={`px-1.5 py-0.5 rounded text-[11px] font-semibold border ${
+                                                rowConv.priority === 'High'
+                                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                  : rowConv.priority === 'Medium'
+                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                                              }`}
+                                            >
+                                              {rowConv.priority}
+                                            </span>
+                                            <span className="text-[9.5px] font-medium text-slate-500 bg-slate-100 px-1 py-0.5 rounded border border-slate-200 whitespace-nowrap">
+                                              from label
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span
+                                            className="inline-flex items-center text-[11px] font-medium bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 cursor-help whitespace-nowrap"
+                                            title={rowConv.warning || 'Not set'}
+                                          >
+                                            Not set
+                                          </span>
+                                        )
+                                      ) : rowConv.priority ? (
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[11px] font-semibold border ${
+                                            rowConv.priority === 'High'
+                                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                              : rowConv.priority === 'Medium'
+                                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                                          }`}
+                                        >
+                                          {rowConv.priority}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 text-[12px]">—</span>
+                                      )}
+                                    </td>
+                                  )}
+                                </React.Fragment>
                               )
                             })}
                           </tr>
@@ -1117,7 +1486,10 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
 
                     {paddingBottom > 0 && (
                       <tr>
-                        <td style={{ height: `${paddingBottom}px` }} colSpan={rawHeaders.length + 4} />
+                        <td
+                          style={{ height: `${paddingBottom}px` }}
+                          colSpan={rawHeaders.length + 4 + (hasConvertedCol ? 1 : 0)}
+                        />
                       </tr>
                     )}
                   </tbody>
@@ -1179,6 +1551,34 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                       <p className="text-[11px] font-semibold text-slate-600 uppercase">Not selected</p>
                       <p className="text-[20px] font-bold text-slate-900 mt-0.5">
                         {importSummary.notSelected}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Priority Breakdown in Summary */}
+                  <div className="grid grid-cols-4 gap-2.5 max-w-lg mx-auto text-center">
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-[10px]">
+                      <p className="text-[10px] font-semibold text-rose-700 uppercase">High</p>
+                      <p className="text-[18px] font-bold text-rose-900 mt-0.5">
+                        {importSummary.priorityCounts.High}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-[10px]">
+                      <p className="text-[10px] font-semibold text-amber-700 uppercase">Medium</p>
+                      <p className="text-[18px] font-bold text-amber-900 mt-0.5">
+                        {importSummary.priorityCounts.Medium}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-slate-100 border border-slate-200 rounded-[10px]">
+                      <p className="text-[10px] font-semibold text-slate-700 uppercase">Low</p>
+                      <p className="text-[18px] font-bold text-slate-900 mt-0.5">
+                        {importSummary.priorityCounts.Low}
+                      </p>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-[10px]">
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase">No priority</p>
+                      <p className="text-[18px] font-bold text-slate-700 mt-0.5">
+                        {importSummary.priorityCounts.none}
                       </p>
                     </div>
                   </div>
@@ -1250,7 +1650,7 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={startImport}
+                onClick={handleImportClick}
                 disabled={isDryRunning || selectedIndices.size === 0}
                 className="inline-flex items-center gap-1.5 h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-semibold disabled:opacity-50 cursor-pointer shadow-xs transition-colors"
               >
