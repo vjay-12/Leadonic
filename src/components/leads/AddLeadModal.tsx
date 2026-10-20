@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { Lead, LeadStatus, LeadCategory } from '../../types'
 import { X, AlertCircle } from 'lucide-react'
+import { Select, SelectOption } from '../common/Select'
 
 interface AddLeadModalProps {
   isOpen: boolean
@@ -38,6 +39,36 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
   const [hasWebsite, setHasWebsite] = useState<string>('')
   const [needsWebsite, setNeedsWebsite] = useState<string>('')
   const [needsErp, setNeedsErp] = useState<string>('')
+
+  const categoryOptions: SelectOption<number | ''>[] = useMemo(
+    () => [
+      { value: '', label: 'Select Category' },
+      ...categories.map((c) => ({
+        value: c.id,
+        label: c.name,
+      })),
+    ],
+    [categories]
+  )
+
+  const priorityOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'None / Unassigned' },
+      { value: 'High', label: 'High' },
+      { value: 'Medium', label: 'Medium' },
+      { value: 'Low', label: 'Low' },
+    ],
+    []
+  )
+
+  const booleanOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'Not specified' },
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' },
+    ],
+    []
+  )
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -217,19 +248,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Category *
               </label>
-              <select
-                required
+              <Select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Select Category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCategoryId(val)}
+                options={categoryOptions}
+                width="w-full"
+                ariaLabel="Category"
+              />
             </div>
 
             {/* Priority */}
@@ -237,16 +262,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Priority
               </label>
-              <select
+              <Select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">None / Unassigned</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+                onChange={(val) => setPriority(val)}
+                options={priorityOptions}
+                width="w-full"
+                ariaLabel="Priority"
+              />
             </div>
 
             {/* Address */}
@@ -341,15 +363,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Needs ERP
               </label>
-              <select
+              <Select
                 value={needsErp}
-                onChange={(e) => setNeedsErp(e.target.value)}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Not specified</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+                onChange={(val) => setNeedsErp(val)}
+                options={booleanOptions}
+                width="w-full"
+                ariaLabel="Needs ERP"
+              />
             </div>
 
             {/* Has Website */}
@@ -357,15 +377,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Has Website
               </label>
-              <select
+              <Select
                 value={hasWebsite}
-                onChange={(e) => setHasWebsite(e.target.value)}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Not specified</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+                onChange={(val) => setHasWebsite(val)}
+                options={booleanOptions}
+                width="w-full"
+                ariaLabel="Has Website"
+              />
             </div>
 
             {/* Needs Website */}
@@ -373,15 +391,13 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Needs Website
               </label>
-              <select
+              <Select
                 value={needsWebsite}
-                onChange={(e) => setNeedsWebsite(e.target.value)}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Not specified</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+                onChange={(val) => setNeedsWebsite(val)}
+                options={booleanOptions}
+                width="w-full"
+                ariaLabel="Needs Website"
+              />
             </div>
 
             {/* Remarks */}

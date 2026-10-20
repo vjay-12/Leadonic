@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { Lead } from '../../types'
 import { AddLeadModal } from './AddLeadModal'
 import { ImportWizardDialog } from './ImportWizardDialog'
 import { RecordContactDialog } from './RecordContactDialog'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { SegmentedTabs } from '../common/SegmentedTabs'
+import { Select, SelectOption } from '../common/Select'
 import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import { formatDateShort } from '../../../lib/date'
 import {
@@ -24,17 +26,20 @@ import {
   Archive,
   RotateCcw,
   Trash2,
-  AlertCircle,
   X,
+  ArrowUpDown,
 } from 'lucide-react'
 
 export const LeadsView: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const confirm = useConfirm()
   const deleteEnabled = useDeleteEnabled()
 
-  // Filter state
+  // Filter & Sort state
+  const sortFilter = searchParams.get('sort') || 'createdAt:desc'
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -43,6 +48,19 @@ export const LeadsView: React.FC = () => {
   const [archivedFilter, setArchivedFilter] = useState<'active' | 'archived'>('active')
   const [page, setPage] = useState(1)
   const pageSize = 50
+
+  const handleSortChange = (newSort: string) => {
+    setSearchParams((prev) => {
+      const updated = new URLSearchParams(prev)
+      if (newSort === 'createdAt:desc') {
+        updated.delete('sort')
+      } else {
+        updated.set('sort', newSort)
+      }
+      return updated
+    })
+    setPage(1)
+  }
 
   // Debounce search input
   useEffect(() => {
@@ -58,8 +76,6 @@ export const LeadsView: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [recordTargetLead, setRecordTargetLead] = useState<Lead | null>(null)
   const [editTargetLead, setEditTargetLead] = useState<Lead | null>(null)
-  const [archiveConfirmLead, setArchiveConfirmLead] = useState<Lead | null>(null)
-  const [deleteConfirmLead, setDeleteConfirmLead] = useState<Lead | null>(null)
 
   // Fetch Statuses & Categories
   const { data: statuses = [] } = useQuery({
@@ -76,7 +92,7 @@ export const LeadsView: React.FC = () => {
   })
 
   // Fetch Leads
-  const queryFilters = { search, statusFilter, categoryFilter, priorityFilter, archivedFilter, page }
+  const queryFilters = { search, statusFilter, categoryFilter, priorityFilter, archivedFilter, page, sortFilter }
   const {
     data: leadsData,
     isLoading,
@@ -94,28 +110,9 @@ export const LeadsView: React.FC = () => {
         archived: archivedFilter,
         page,
         pageSize,
-        sort: 'createdAt:desc',
+        sort: sortFilter,
       }),
   })
-
-  // Query contacts count for the lead being deleted
-  const { data: deleteLeadContacts = [] } = useQuery({
-    queryKey: ['leadContacts', deleteConfirmLead?.id],
-    queryFn: () => (deleteConfirmLead ? api.getLeadContacts(deleteConfirmLead.id) : Promise.resolve([])),
-    enabled: Boolean(deleteConfirmLead),
-  })
-
-  // Escape key handler for confirmation dialogs
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (deleteConfirmLead) setDeleteConfirmLead(null)
-        else if (archiveConfirmLead) setArchiveConfirmLead(null)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteConfirmLead, archiveConfirmLead])
 
   // Archive mutation
   const archiveLeadMutation = useMutation({
@@ -124,7 +121,6 @@ export const LeadsView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['lead', updated.id] })
-      setArchiveConfirmLead(null)
       success('Lead archived successfully')
     },
     onError: (err: any) => {
@@ -152,7 +148,6 @@ export const LeadsView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      setDeleteConfirmLead(null)
       success('Lead permanently deleted')
     },
     onError: (err: any) => {
@@ -164,20 +159,120 @@ export const LeadsView: React.FC = () => {
     },
   })
 
+  // Confirmation handlers using shared useConfirm
+  const handleArchive = async (lead: Lead) => {
+    const ok = await confirm({
+      title: `Archive '${lead.title}'?`,
+      message: 'It will be hidden from the active list and reports. You can restore it anytime.',
+      confirmText: 'Yes, Archive Lead',
+      icon: 'archive',
+      isDestructive: false,
+    })
+    if (ok) {
+      archiveLeadMutation.mutate(lead.id)
+    }
+  }
+
+  const handleDelete = async (lead: Lead) => {
+    let contactsCount = 0
+    try {
+      const contacts = await api.getLeadContacts(lead.id)
+      contactsCount = contacts.length
+    } catch {
+      // fallback
+    }
+
+    const ok = await confirm({
+      title: `Delete '${lead.title}' permanently?`,
+      message: `This will permanently delete this lead and its ${contactsCount} contact ${contactsCount === 1 ? 'record' : 'records'}. This action cannot be undone.`,
+      confirmText: 'Delete Permanently',
+      isDestructive: true,
+    })
+    if (ok) {
+      deleteLeadMutation.mutate(lead.id)
+    }
+  }
+
+  const handleRestore = async (lead: Lead) => {
+    const ok = await confirm({
+      title: `Restore '${lead.title}'?`,
+      message: 'This lead will be moved back to the active leads list.',
+      confirmText: 'Restore Lead',
+      icon: 'info',
+    })
+    if (ok) {
+      restoreLeadMutation.mutate(lead.id)
+    }
+  }
   const handleExportCsv = () => {
     const q = new URLSearchParams()
     if (search) q.set('search', search)
     if (statusFilter) q.set('statusId', statusFilter)
     if (categoryFilter) q.set('categoryId', categoryFilter)
     if (priorityFilter) q.set('priority', priorityFilter)
-    q.set('archived', archivedFilter)
+    if (archivedFilter) q.set('archived', archivedFilter)
+    if (sortFilter) q.set('sort', sortFilter)
     window.location.href = `/api/leads/export.csv?${q.toString()}`
   }
+
+  const statusOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Statuses' },
+      { value: 'none', label: 'Not called', color: '#94a3b8' },
+      ...statuses.map((s) => ({
+        value: String(s.id),
+        label: s.name,
+        color: s.color,
+      })),
+    ],
+    [statuses]
+  )
+
+  const categoryOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Categories' },
+      ...categories.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+      })),
+    ],
+    [categories]
+  )
+
+  const priorityOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Priorities' },
+      { value: 'High', label: 'High' },
+      { value: 'Medium', label: 'Medium' },
+      { value: 'Low', label: 'Low' },
+    ],
+    []
+  )
+
+  const sortOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: 'createdAt:desc', label: 'Date created: newest first' },
+      { value: 'createdAt:asc', label: 'Date created: oldest first' },
+      { value: 'lastContact:desc', label: 'Last contact: most recent first' },
+      { value: 'lastContact:asc', label: 'Last contact: oldest first' },
+      { value: 'title:asc', label: 'Name: A to Z' },
+      { value: 'title:desc', label: 'Name: Z to A' },
+    ],
+    []
+  )
 
   const leads = leadsData?.items || []
   const total = leadsData?.total || 0
   const totalPages = Math.ceil(total / pageSize) || 1
-  const isFiltered = Boolean(searchInput || search || statusFilter || categoryFilter || priorityFilter || archivedFilter !== 'active')
+  const isFiltered = Boolean(
+    searchInput ||
+      search ||
+      statusFilter ||
+      categoryFilter ||
+      priorityFilter ||
+      archivedFilter !== 'active' ||
+      sortFilter !== 'createdAt:desc'
+  )
 
   return (
     <div className="space-y-3">
@@ -219,10 +314,10 @@ export const LeadsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Filter Bar in One Row with 10px Card Padding, 8px Gaps (Never Reflows) */}
+      {/* 2. Filter Bar: Search takes remaining width (flex: 1, min 240px), 8px gaps */}
       <div className="p-2.5 bg-white border border-slate-200 rounded-[10px] shadow-2xs flex items-center gap-2 flex-nowrap overflow-x-auto">
-        {/* Search Input: fixed at 280px */}
-        <div className="relative w-[280px] shrink-0 h-8">
+        {/* Search Input: flex: 1, min-w-[240px] */}
+        <div className="relative flex-1 min-w-[240px] h-8">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
           <input
             type="text"
@@ -243,7 +338,7 @@ export const LeadsView: React.FC = () => {
           )}
         </div>
 
-        {/* Active / Archived Tabs: 28px tall */}
+        {/* Active / Archived Tabs */}
         <SegmentedTabs
           value={archivedFilter}
           onChange={(val) => {
@@ -256,78 +351,71 @@ export const LeadsView: React.FC = () => {
           ]}
         />
 
-        {/* Status Filter: fixed at 140px, 32px tall */}
-        <select
+        {/* Status Filter */}
+        <Select
           value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value)
+          onChange={(val) => {
+            setStatusFilter(val)
             setPage(1)
           }}
-          className="w-[140px] shrink-0 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 truncate cursor-pointer"
-        >
-          <option value="">All Statuses</option>
-          <option value="none">Not called</option>
-          {statuses.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+          options={statusOptions}
+          fitToOptions
+          ariaLabel="Filter by status"
+        />
 
-        {/* Category Filter: fixed at 140px, 32px tall */}
-        <select
+        {/* Category Filter */}
+        <Select
           value={categoryFilter}
-          onChange={(e) => {
-            setCategoryFilter(e.target.value)
+          onChange={(val) => {
+            setCategoryFilter(val)
             setPage(1)
           }}
-          className="w-[140px] shrink-0 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 truncate cursor-pointer"
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          options={categoryOptions}
+          fitToOptions
+          ariaLabel="Filter by category"
+        />
 
-        {/* Priority Filter: fixed at 140px, 32px tall */}
-        <select
+        {/* Priority Filter */}
+        <Select
           value={priorityFilter}
-          onChange={(e) => {
-            setPriorityFilter(e.target.value)
+          onChange={(val) => {
+            setPriorityFilter(val)
             setPage(1)
           }}
-          className="w-[140px] shrink-0 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 truncate cursor-pointer"
-        >
-          <option value="">All Priorities</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
+          options={priorityOptions}
+          fitToOptions
+          ariaLabel="Filter by priority"
+        />
 
-        {/* Reset button positioned at ml-auto so the 5 controls never move */}
-        <div className="ml-auto shrink-0">
-          {isFiltered ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchInput('')
-                setSearch('')
-                setStatusFilter('')
-                setCategoryFilter('')
-                setPriorityFilter('')
-                setArchivedFilter('active')
-                setPage(1)
-              }}
-              className="h-8 px-2.5 text-[12px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer transition-colors"
-            >
-              Reset Filters
-            </button>
-          ) : (
-            <div className="h-8 w-2" />
-          )}
-        </div>
+        {/* Sort By Dropdown (fixed width 180px, sort icon) */}
+        <Select
+          value={sortFilter}
+          onChange={handleSortChange}
+          options={sortOptions}
+          width={180}
+          prefixIcon={<ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+          ariaLabel="Sort leads"
+        />
+
+        {/* Reset button */}
+        {isFiltered && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchInput('')
+              setSearch('')
+              setStatusFilter('')
+              setCategoryFilter('')
+              setPriorityFilter('')
+              setArchivedFilter('active')
+              handleSortChange('createdAt:desc')
+              setPage(1)
+            }}
+            className="h-8 px-2.5 text-[12px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer transition-colors shrink-0"
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
       {/* 3. Main Container: Fixed Min-Height and Pinned Pagination */}
@@ -570,7 +658,7 @@ export const LeadsView: React.FC = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => setArchiveConfirmLead(lead)}
+                                    onClick={() => handleArchive(lead)}
                                     className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer shrink-0"
                                     title={`Archive ${lead.title}`}
                                     aria-label={`Archive ${lead.title}`}
@@ -582,7 +670,7 @@ export const LeadsView: React.FC = () => {
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => restoreLeadMutation.mutate(lead.id)}
+                                    onClick={() => handleRestore(lead)}
                                     disabled={restoreLeadMutation.isPending}
                                     className="w-7 h-7 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                                     title={`Restore ${lead.title}`}
@@ -595,7 +683,7 @@ export const LeadsView: React.FC = () => {
                                     disabled={!deleteEnabled}
                                     aria-disabled={!deleteEnabled}
                                     onClick={() => {
-                                      if (deleteEnabled) setDeleteConfirmLead(lead)
+                                      if (deleteEnabled) handleDelete(lead)
                                     }}
                                     className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
                                       deleteEnabled
@@ -712,7 +800,7 @@ export const LeadsView: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setArchiveConfirmLead(lead)}
+                              onClick={() => handleArchive(lead)}
                               className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer"
                               title="Archive lead"
                             >
@@ -723,7 +811,7 @@ export const LeadsView: React.FC = () => {
                           <>
                             <button
                               type="button"
-                              onClick={() => restoreLeadMutation.mutate(lead.id)}
+                              onClick={() => handleRestore(lead)}
                               className="w-7 h-7 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
                               title="Restore lead"
                             >
@@ -734,7 +822,7 @@ export const LeadsView: React.FC = () => {
                               disabled={!deleteEnabled}
                               aria-disabled={!deleteEnabled}
                               onClick={() => {
-                                if (deleteEnabled) setDeleteConfirmLead(lead)
+                                if (deleteEnabled) handleDelete(lead)
                               }}
                               className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
                                 deleteEnabled
@@ -837,74 +925,6 @@ export const LeadsView: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
           }}
         />
-      )}
-
-      {/* Archive Confirmation Dialog */}
-      {archiveConfirmLead && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-sm w-full p-4 shadow-xl space-y-3">
-            <div className="flex items-center gap-2 text-amber-700">
-              <Archive className="w-4 h-4 shrink-0" />
-              <h3 className="text-[14px] font-bold text-slate-900">Archive this lead?</h3>
-            </div>
-            <p className="text-[13px] text-slate-600">
-              Archive <strong className="text-slate-900">{archiveConfirmLead.title}</strong>? It will be hidden from the active list and reports. You can restore it anytime.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setArchiveConfirmLead(null)}
-                className="h-8 px-3 text-[13px] font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => archiveLeadMutation.mutate(archiveConfirmLead.id)}
-                disabled={archiveLeadMutation.isPending}
-                className="h-8 px-3 text-[13px] font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-60"
-              >
-                {archiveLeadMutation.isPending ? 'Archiving...' : 'Archive Lead'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirmLead && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-sm w-full p-4 shadow-xl space-y-3">
-            <div className="flex items-center gap-2 text-rose-600">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <h3 className="text-[14px] font-bold text-slate-900">Delete Permanently?</h3>
-            </div>
-            <p className="text-[13px] text-slate-600">
-              Delete permanently? This also removes{' '}
-              <strong className="text-slate-900">
-                {deleteLeadContacts.length} contact {deleteLeadContacts.length === 1 ? 'record' : 'records'}
-              </strong>{' '}
-              and cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmLead(null)}
-                className="h-8 px-3 text-[13px] font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteLeadMutation.mutate(deleteConfirmLead.id)}
-                disabled={deleteLeadMutation.isPending}
-                className="h-8 px-3 text-[13px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-60"
-              >
-                {deleteLeadMutation.isPending ? 'Deleting...' : 'Delete Lead'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )

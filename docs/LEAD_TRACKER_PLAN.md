@@ -690,5 +690,66 @@ Step 2 of the spreadsheet import wizard was re-engineered into a high-performanc
 - Pre-checks intra-file duplicates to identify repeated entries before database queries.
 - Re-verifies deduplication at actual import time to guard against race conditions.
 
+---
+
+## 17. Dropdowns, Sorting, and Confirmations Overhaul
+
+Across the entire application, all native `<select>` dropdowns, browser `confirm()`/`alert()` calls, and list sorting mechanisms were re-engineered for visual consistency, keyboard accessibility, and database performance.
+
+### 17.1 Leads Sort By Dropdown & Backend Architecture
+- **Sort Dropdown in Filter Bar**: Added a dedicated "Sort by" dropdown (width 180px, with sort icon) positioned after filter dropdowns.
+  - Six options:
+    - `createdAt:desc` (Date created: newest first - default)
+    - `createdAt:asc` (Date created: oldest first)
+    - `lastContact:desc` (Last contact: most recent first)
+    - `lastContact:asc` (Last contact: oldest first)
+    - `title:asc` (Name: A to Z)
+    - `title:desc` (Name: Z to A)
+- **URL Synchronization**: Persists sort selection in URL (`?sort=...`), automatically resetting pagination to page 1 on sort change. CSV export applies the exact same filter and sort parameters.
+- **API Sort Validation & Whitelisting**: Strict whitelisting in `GET /api/leads` returning 400 for any unrecognized sort key, with stable secondary tie-breaker `id desc`.
+- **Case-Insensitive Name Sorting**: Stored generated column `title_lower TEXT GENERATED ALWAYS AS (lower("title")) STORED` with B-tree index in PostgreSQL ensures fast, deterministic alphabetical sorting across mixed-case datasets.
+- **Last Contact Date Column & Sync**:
+  - Nullable `Date` column `leads.last_contact_date` with index `@@index([lastContactDate])`.
+  - Migration deployed via `prisma migrate deploy` and backfilled from `MAX(contact_date)` of all existing contact logs without data loss.
+  - Kept in sync inside the transactional helper `syncLeadStatus` called on contact log creation, edits, and deletions.
+  - Leads never contacted (`lastContactDate: null`) always appear last (`nulls: 'last'`) for both ascending and descending last-contact sorting.
+  - Returned as `lastContactDate` in lead list response and rendered in UI.
+
+### 17.2 Universal Custom Select Component (`Select.tsx`)
+- **Zero Native `<select>`**: Replaced every `<select>` across the application:
+  - Leads view filter bar (Status, Category, Priority, Sort by)
+  - Add & Edit Lead modals (Category, Priority, Needs ERP, Has Website, Needs Website)
+  - Record Contact dialog (Status)
+  - Import Wizard dialog (Category selection, Column mappings)
+  - Calling Report filter bar (Category, with styled matching 32px date controls)
+  - School ERP view filter bar (Stage, Area)
+  - Record Meeting dialog (Meeting Type, Stage, Contact)
+- **Compact & Consistent Design System**:
+  - Trigger: 32px height, 8px radius, 1px border, white background, 13px text, 14px muted chevron on the right, darker border on hover, 2px blue focus ring, and blue border while open.
+  - Popover: Rendered in a portal (`z-[9999]`), 10px radius, 1px border, soft shadow, 4px padding. Items are 32px tall with 13px text, subtle highlight on hover/focus, and check icon on selected item. Max popover width 280px with internal scrolling.
+  - Viewport boundary detection: Auto-flips upward when screen bottom space is limited (<220px) and auto-shifts leftward to avoid overflow on narrow screens (390px mobile).
+  - Status and Stage options display their associated colored dot.
+- **Accessibility & Keyboard Navigation**:
+  - Full ARIA compliance (`combobox`, `listbox`, `option`, `aria-expanded`, `aria-selected`, `aria-controls`).
+  - Arrow Up/Down navigation, Home/End, Enter, Space to select, Esc to close, and typeahead character search.
+  - Capture-phase Escape listener prevents parent dialogs from closing when dismissing an open popover.
+
+### 17.3 Dropdown Sizing & Filter Bar Layout
+- **No Empty Gaps & Stable Trigger Widths**: Each filter trigger's width is fitted to its longest option label (bounded between 110px and 200px) with the chevron pinned to the right edge. Trigger widths remain constant regardless of the selected option so adjacent controls never shift.
+- **Full Width Filter Bar**: Search box expands using `flex: 1` (`min-w-[240px]`) so no unused empty space remains at the end of the bar. Tabs, dropdowns, and sort controls maintain fixed/fitted widths with uniform 8px gaps (`gap-2`).
+- **Single-Line Ellipsis with Full-Name Tooltip**: Triggers and popover items enforce single-line text truncation with `min-width: 0` and `title` tooltip displaying the full name on hover.
+- **Settings Name Limit**: Category and School Stage names are constrained to 30 characters in Settings (client `maxLength={30}` and server Zod `max(30)` validation; status remains 20). Existing longer names remain safely stored and display cleanly with ellipses.
+
+### 17.4 Unified Confirmation Dialog System (`ConfirmDialog` / `useConfirm`)
+- **Promise-Based `useConfirm()` Hook**: Standardized confirmation provider and modal replacing all native `window.confirm()`, `confirm()`, `alert()`, and `prompt()` calls.
+- **Design & Behavior**:
+  - Centered modal matching Leadonic's compact design language: title, contextual message, Cancel button, and Confirm button (red for destructive actions).
+  - Destructive actions initialize keyboard focus on the Cancel button.
+  - Esc key and backdrop click dismiss with `false`. Focus is trapped inside the active confirmation modal.
+  - Replaced confirmation flows across Lead archive, restore, and permanent delete; School archive, restore, and permanent delete; School contact and meeting delete; Settings status, category, and stage deletes.
+  - Clean error handling: If server returns 409 Conflict (e.g. status or category in use), the server message is displayed in a toast notification and data remains unchanged.
+  - ESLint / oxlint `"no-alert": "error"` rule configured to prevent native browser dialogs from returning.
+
+
 
 

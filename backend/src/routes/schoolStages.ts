@@ -5,12 +5,12 @@ import { prisma } from '../db.js'
 export const schoolStagesRouter = Router()
 
 const CreateStageSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().min(1, 'Name is required').max(30, 'Stage name must not exceed 30 characters'),
   color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color required').default('#64748B'),
 })
 
 const UpdateStageSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').optional(),
+  name: z.string().trim().min(1, 'Name is required').max(30, 'Stage name must not exceed 30 characters').optional(),
   color: z.string().trim().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color required').optional(),
 })
 

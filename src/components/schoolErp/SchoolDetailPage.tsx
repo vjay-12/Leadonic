@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { SchoolContact, SchoolMeeting } from '../../types'
 import { formatDateMedium, formatDateTimeIST } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
@@ -41,22 +42,17 @@ export const SchoolDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const confirm = useConfirm()
   const deleteEnabled = useDeleteEnabled()
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isRecordMeetingOpen, setIsRecordMeetingOpen] = useState(false)
   const [meetingToEdit, setMeetingToEdit] = useState<SchoolMeeting | null>(null)
-  const [meetingToDelete, setMeetingToDelete] = useState<SchoolMeeting | null>(null)
 
   // Contacts modal state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<SchoolContact | null>(null)
-  const [contactToDelete, setContactToDelete] = useState<SchoolContact | null>(null)
-
-  // School archive / delete confirmation
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Edit School form state
   const [editName, setEditName] = useState('')
@@ -104,21 +100,13 @@ export const SchoolDetailPage: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (contactToDelete) setContactToDelete(null)
-        else if (meetingToDelete) setMeetingToDelete(null)
-        else if (showArchiveConfirm) setShowArchiveConfirm(false)
-        else if (showDeleteConfirm) setShowDeleteConfirm(false)
-        else if (isContactModalOpen) setIsContactModalOpen(false)
+        if (isContactModalOpen) setIsContactModalOpen(false)
         else if (isEditModalOpen) setIsEditModalOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
-    contactToDelete,
-    meetingToDelete,
-    showArchiveConfirm,
-    showDeleteConfirm,
     isContactModalOpen,
     isEditModalOpen,
   ])
@@ -146,7 +134,6 @@ export const SchoolDetailPage: React.FC = () => {
     onSuccess: (updated) => {
       queryClient.setQueryData(['school', schoolId], updated)
       queryClient.invalidateQueries({ queryKey: ['schools'] })
-      setShowArchiveConfirm(false)
       success('School archived')
     },
     onError: (err: any) => toastError(err.message || 'Failed to archive school'),
@@ -210,7 +197,6 @@ export const SchoolDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school', schoolId] })
       queryClient.invalidateQueries({ queryKey: ['schools'] })
-      setContactToDelete(null)
       success('Contact deleted')
     },
     onError: (err: any) => toastError(err.message || 'Failed to delete contact'),
@@ -232,11 +218,77 @@ export const SchoolDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['school', schoolId] })
       queryClient.invalidateQueries({ queryKey: ['schools'] })
-      setMeetingToDelete(null)
       success('Meeting deleted')
     },
     onError: (err: any) => toastError(err.message || 'Failed to delete meeting'),
   })
+
+  // Shared Confirmation Handlers
+  const handleArchive = async () => {
+    if (!school) return
+    const ok = await confirm({
+      title: `Archive '${school.name}'?`,
+      message: 'It will be hidden from the active list and reports. You can restore it anytime.',
+      confirmText: 'Yes, Archive School',
+      icon: 'archive',
+      isDestructive: false,
+    })
+    if (ok) {
+      archiveMutation.mutate()
+    }
+  }
+
+  const handleRestore = async () => {
+    if (!school) return
+    const ok = await confirm({
+      title: `Restore '${school.name}'?`,
+      message: 'This school will be moved back to the active school ERP list.',
+      confirmText: 'Restore School',
+      icon: 'info',
+    })
+    if (ok) {
+      restoreMutation.mutate()
+    }
+  }
+
+  const handleDeleteSchool = async () => {
+    if (!school) return
+    const ok = await confirm({
+      title: `Delete '${school.name}' permanently?`,
+      message: `This will permanently delete this school, along with its ${contacts.length} contacts and ${meetings.length} meetings. This action cannot be undone.`,
+      confirmText: 'Delete Permanently',
+      isDestructive: true,
+    })
+    if (ok) {
+      deleteMutation.mutate()
+    }
+  }
+
+  const handleDeleteContact = async (c: SchoolContact) => {
+    const ok = await confirm({
+      title: `Delete contact '${c.name}'?`,
+      message: c.isPrimary && contacts.length > 1
+        ? 'Are you sure? The oldest remaining contact will automatically be promoted to primary.'
+        : 'This action cannot be undone.',
+      confirmText: 'Delete Contact',
+      isDestructive: true,
+    })
+    if (ok) {
+      deleteContactMutation.mutate(c.id)
+    }
+  }
+
+  const handleDeleteMeeting = async (m: SchoolMeeting) => {
+    const ok = await confirm({
+      title: 'Delete this meeting record?',
+      message: `Are you sure you want to delete this meeting record from ${formatDateMedium(m.meetingDate)}? The school's current stage will automatically re-sync to the prior meeting.`,
+      confirmText: 'Delete Meeting',
+      isDestructive: true,
+    })
+    if (ok) {
+      deleteMeetingMutation.mutate(m.id)
+    }
+  }
 
   if (isNaN(schoolId)) {
     return (
@@ -381,7 +433,7 @@ export const SchoolDetailPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setShowArchiveConfirm(true)}
+                onClick={handleArchive}
                 className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer shadow-2xs"
               >
                 <Archive className="w-3.5 h-3.5 text-amber-600" />
@@ -392,7 +444,7 @@ export const SchoolDetailPage: React.FC = () => {
             <>
               <button
                 type="button"
-                onClick={() => restoreMutation.mutate()}
+                onClick={handleRestore}
                 disabled={restoreMutation.isPending}
                 className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
               >
@@ -405,7 +457,7 @@ export const SchoolDetailPage: React.FC = () => {
                 disabled={!deleteEnabled}
                 aria-disabled={!deleteEnabled}
                 onClick={() => {
-                  if (deleteEnabled) setShowDeleteConfirm(true)
+                  if (deleteEnabled) handleDeleteSchool()
                 }}
                 className={`inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold rounded-lg transition-colors shadow-2xs ${
                   deleteEnabled
@@ -760,7 +812,7 @@ export const SchoolDetailPage: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setContactToDelete(c)}
+                              onClick={() => handleDeleteContact(c)}
                               className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
                               title="Delete contact"
                             >
@@ -911,7 +963,7 @@ export const SchoolDetailPage: React.FC = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setMeetingToDelete(m)}
+                                onClick={() => handleDeleteMeeting(m)}
                                 className="w-7 h-7 inline-flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
                                 title="Delete meeting"
                               >
@@ -1282,165 +1334,6 @@ export const SchoolDetailPage: React.FC = () => {
           contacts={contacts}
           meetingToEdit={meetingToEdit}
         />
-      )}
-
-      {/* Delete Contact Confirmation Dialog */}
-      {contactToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-sm w-full p-4 shadow-xl space-y-3">
-            <div className="flex items-center gap-2 text-rose-600">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <h3 className="text-[14px] font-bold text-slate-900">Delete Contact?</h3>
-            </div>
-            <p className="text-[12px] text-slate-600">
-              Are you sure you want to remove <span className="font-semibold text-slate-900">{contactToDelete.name}</span>?
-              {contactToDelete.isPrimary && contacts.length > 1 && (
-                <span className="block mt-1 text-slate-500 italic">
-                  Note: The oldest remaining contact will automatically be promoted to primary.
-                </span>
-              )}
-            </p>
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setContactToDelete(null)}
-                className="px-3 h-8 text-[12px] font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleteContactMutation.isPending}
-                onClick={() => deleteContactMutation.mutate(contactToDelete.id)}
-                className="px-3 h-8 text-[12px] font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 cursor-pointer disabled:opacity-50"
-              >
-                {deleteContactMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Meeting Confirmation Dialog */}
-      {meetingToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-sm w-full p-4 shadow-xl space-y-3">
-            <div className="flex items-center gap-2 text-rose-600">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <h3 className="text-[14px] font-bold text-slate-900">Delete Meeting Record?</h3>
-            </div>
-            <p className="text-[12px] text-slate-600">
-              Are you sure you want to delete this meeting record from{' '}
-              <span className="font-semibold text-slate-900">{formatDateMedium(meetingToDelete.meetingDate)}</span>?
-              <span className="block mt-1 text-slate-500 italic">
-                The school's current stage will automatically re-sync to the prior meeting.
-              </span>
-            </p>
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setMeetingToDelete(null)}
-                className="px-3 h-8 text-[12px] font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleteMeetingMutation.isPending}
-                onClick={() => deleteMeetingMutation.mutate(meetingToDelete.id)}
-                className="px-3 h-8 text-[12px] font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 cursor-pointer disabled:opacity-50"
-              >
-                {deleteMeetingMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Archive School Confirmation Dialog */}
-      {showArchiveConfirm && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-md w-full p-5 shadow-xl space-y-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                <Archive className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-slate-900">Archive this school?</h3>
-                <p className="text-[12px] text-slate-500">
-                  Are you sure you want to archive "{school.name}"?
-                </p>
-              </div>
-            </div>
-            <p className="text-[12px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              Archived schools will become view-only and hidden from active lists until restored.
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowArchiveConfirm(false)}
-                className="px-3.5 h-8 text-[12px] font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={archiveMutation.isPending}
-                onClick={() => archiveMutation.mutate()}
-                className="px-3.5 h-8 text-[12px] font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-60"
-              >
-                {archiveMutation.isPending ? 'Archiving...' : 'Yes, Archive School'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Permanent Delete School Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-[10px] max-w-md w-full p-5 shadow-xl space-y-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
-                <AlertCircle className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-bold text-slate-900">Delete permanently?</h3>
-                <p className="text-[12px] text-rose-600 font-medium">This cannot be undone.</p>
-              </div>
-            </div>
-            <p className="text-[12px] text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              School "{school.name}" and all associated data will be deleted permanently:
-            </p>
-            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-[12px] text-rose-800 space-y-1">
-              <ul className="list-disc list-inside space-y-0.5">
-                <li>
-                  <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}
-                </li>
-                <li>
-                  <strong>{meetings.length}</strong> meeting record{meetings.length === 1 ? '' : 's'}
-                </li>
-              </ul>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-3.5 h-8 text-[12px] font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleteMutation.isPending}
-                onClick={() => deleteMutation.mutate()}
-                className="px-3.5 h-8 text-[12px] font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer transition-colors shadow-xs disabled:opacity-60"
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )

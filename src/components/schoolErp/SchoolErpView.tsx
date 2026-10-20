@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
@@ -8,6 +8,7 @@ import { formatDateShort } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
 import { SegmentedTabs } from '../common/SegmentedTabs'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
+import { Select, SelectOption } from '../common/Select'
 import {
   Search,
   Plus,
@@ -84,6 +85,30 @@ export const SchoolErpView: React.FC = () => {
     queryKey: ['schoolAreas'],
     queryFn: () => api.getSchoolAreas(),
   })
+
+  const stageOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Stages' },
+      { value: 'none', label: 'Not started', color: '#94a3b8' },
+      ...stages.map((st) => ({
+        value: String(st.id),
+        label: st.name,
+        color: st.color,
+      })),
+    ],
+    [stages]
+  )
+
+  const areaOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Areas' },
+      ...areas.map((a) => ({
+        value: a,
+        label: a,
+      })),
+    ],
+    [areas]
+  )
 
   // Fetch Schools
   const {
@@ -214,52 +239,54 @@ export const SchoolErpView: React.FC = () => {
             setSearch(searchInput)
             setPage(1)
           }}
-          className="relative min-w-[220px] flex-1 max-w-sm"
+          className="relative min-w-[240px] flex-1 h-8"
         >
-          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
           <input
             type="text"
             placeholder="Search school, area, phone..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full h-8 pl-8 pr-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full h-8 pl-8 pr-7 bg-slate-50 border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
           />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('')
+                setSearch('')
+                setPage(1)
+              }}
+              className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </form>
 
         {/* Stage Filter */}
-        <select
+        <Select
           value={stageFilter}
-          onChange={(e) => {
-            setStageFilter(e.target.value)
+          onChange={(val) => {
+            setStageFilter(val)
             setPage(1)
           }}
-          className="w-40 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-        >
-          <option value="">All Stages</option>
-          <option value="none">Not started</option>
-          {stages.map((st) => (
-            <option key={st.id} value={st.id}>
-              {st.name}
-            </option>
-          ))}
-        </select>
+          options={stageOptions}
+          fitToOptions
+          ariaLabel="Filter by stage"
+        />
 
         {/* Area Filter */}
-        <select
+        <Select
           value={areaFilter}
-          onChange={(e) => {
-            setAreaFilter(e.target.value)
+          onChange={(val) => {
+            setAreaFilter(val)
             setPage(1)
           }}
-          className="w-36 h-8 px-2.5 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-        >
-          <option value="">All Areas</option>
-          {areas.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
+          options={areaOptions}
+          fitToOptions
+          ariaLabel="Filter by area"
+        />
 
         {/* Active / Archived Tabs */}
         <SegmentedTabs

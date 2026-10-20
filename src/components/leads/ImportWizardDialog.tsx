@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Search,
 } from 'lucide-react'
+import { Select, SelectOption } from '../common/Select'
 
 interface ImportWizardDialogProps {
   isOpen: boolean
@@ -58,6 +59,28 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [categoryId, setCategoryId] = useState<number | ''>(categories[0]?.id || '')
+
+  const categoryOptions: SelectOption<number | ''>[] = useMemo(
+    () => [
+      { value: '', label: 'Choose a Category...' },
+      ...categories.map((c) => ({
+        value: c.id,
+        label: c.name,
+      })),
+    ],
+    [categories]
+  )
+
+  const fieldSelectOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: '(Not imported)' },
+      ...FIELD_OPTIONS.map((f) => ({
+        value: f.key,
+        label: f.label,
+      })),
+    ],
+    []
+  )
 
   // Quick add category inline
   const [showAddCat, setShowAddCat] = useState(false)
@@ -689,19 +712,14 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                   </form>
                 )}
 
-                <select
+                <Select
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-                  required
-                >
-                  <option value="">Choose a Category...</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setCategoryId(val)}
+                  options={categoryOptions}
+                  width="w-full"
+                  placeholder="Choose a Category..."
+                  ariaLabel="Category"
+                />
                 <p className="text-[11px] text-slate-400 mt-1">
                   All imported leads in this batch will be assigned to this category.
                 </p>
@@ -765,18 +783,13 @@ export const ImportWizardDialog: React.FC<ImportWizardDialogProps> = ({
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <span className="text-[11px] text-slate-400">maps to</span>
-                              <select
+                              <Select
                                 value={currentField}
-                                onChange={(e) => handleMappingChange(header, e.target.value)}
-                                className="h-8 px-2 bg-white border border-slate-300 rounded-lg text-[12px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer"
-                              >
-                                <option value="">(Not imported)</option>
-                                {FIELD_OPTIONS.map((f) => (
-                                  <option key={f.key} value={f.key}>
-                                    {f.label}
-                                  </option>
-                                ))}
-                              </select>
+                                onChange={(val) => handleMappingChange(header, val)}
+                                options={fieldSelectOptions}
+                                width={180}
+                                ariaLabel={`Map ${header}`}
+                              />
                             </div>
                           </div>
                         )

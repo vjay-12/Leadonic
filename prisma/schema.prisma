@@ -48,6 +48,7 @@ model ImportBatch {
 model Lead {
   id              Int           @id @default(autoincrement())
   title           String
+  titleLower      String?       @default(dbgenerated()) @map("title_lower")
   phone           String?
   phoneNormalized String?       @map("phone_normalized")
   dedupeKey       String        @unique @map("dedupe_key")
@@ -71,6 +72,7 @@ model Lead {
   batchId         Int?          @map("batch_id")
   batch           ImportBatch?  @relation(fields: [batchId], references: [id])
   archivedAt      DateTime?     @map("archived_at")
+  lastContactDate DateTime?     @map("last_contact_date") @db.Date
   contactLogs     ContactLog[]
   school          School?
   createdAt       DateTime      @default(now()) @map("created_at")
@@ -80,6 +82,8 @@ model Lead {
   @@index([categoryId])
   @@index([priority])
   @@index([archivedAt])
+  @@index([lastContactDate])
+  @@index([titleLower])
   @@map("leads")
 }
 

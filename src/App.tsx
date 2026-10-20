@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { ConfirmProvider } from './context/ConfirmContext'
 import { AppLayout } from './components/layout/AppLayout'
 import { LoginView } from './components/auth/LoginView'
 import { DashboardView } from './components/dashboard/DashboardView'
@@ -51,7 +52,9 @@ export function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AuthenticatedApp />
+        <ConfirmProvider>
+          <AuthenticatedApp />
+        </ConfirmProvider>
       </ToastProvider>
     </AuthProvider>
   )

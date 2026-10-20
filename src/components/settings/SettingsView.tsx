@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { LeadStatus, LeadCategory, SchoolStage } from '../../types'
 import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, X, AlertCircle } from 'lucide-react'
 
@@ -9,6 +10,7 @@ export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'statuses' | 'categories' | 'schoolStages'>('statuses')
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
+  const confirm = useConfirm()
 
   // Editing state
   const [editingStatus, setEditingStatus] = useState<LeadStatus | null>(null)
@@ -416,12 +418,18 @@ export const SettingsView: React.FC = () => {
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete status "${status.name}"?`)) {
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Delete status '${status.name}'?`,
+                            message: 'This cannot be undone. Leads using this status will need a new status assigned.',
+                            confirmText: 'Delete',
+                            isDestructive: true,
+                          })
+                          if (ok) {
                             deleteStatusMutation.mutate(status.id)
                           }
                         }}
-                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete status"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -452,7 +460,8 @@ export const SettingsView: React.FC = () => {
             >
               <input
                 type="text"
-                placeholder="Category name (e.g. Hospital)"
+                placeholder="Category name (max 30 chars, e.g. Hospital)"
+                maxLength={30}
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 className="flex-1 min-w-[200px] h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
@@ -482,9 +491,9 @@ export const SettingsView: React.FC = () => {
                     key={cat.id}
                     className="px-3 py-2 h-[44px] flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {/* Reorder Buttons */}
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-0.5 shrink-0">
                         <button
                           onClick={() => moveCategory(idx, 'up')}
                           disabled={idx === 0}
@@ -503,30 +512,38 @@ export const SettingsView: React.FC = () => {
                         </button>
                       </div>
 
-                      <span className="font-semibold text-slate-900 text-[13px]">{cat.name}</span>
+                      <span className="font-semibold text-slate-900 text-[13px] truncate max-w-[280px]" title={cat.name}>
+                        {cat.name}
+                      </span>
 
                       {/* Lead count */}
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium shrink-0">
                         {cat.leadCount} {cat.leadCount === 1 ? 'lead' : 'leads'}
                       </span>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => setEditingCategory(cat)}
-                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         title="Edit category"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete category "${cat.name}"?`)) {
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Delete category '${cat.name}'?`,
+                            message: 'This cannot be undone. Leads in this category will need a new category assigned.',
+                            confirmText: 'Delete',
+                            isDestructive: true,
+                          })
+                          if (ok) {
                             deleteCategoryMutation.mutate(cat.id)
                           }
                         }}
-                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete category"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -560,7 +577,8 @@ export const SettingsView: React.FC = () => {
             >
               <input
                 type="text"
-                placeholder="Stage name (e.g. Contacted)"
+                placeholder="Stage name (max 30 chars, e.g. Contacted)"
+                maxLength={30}
                 value={newSchoolStageName}
                 onChange={(e) => setNewSchoolStageName(e.target.value)}
                 className="flex-1 min-w-[200px] h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
@@ -599,9 +617,9 @@ export const SettingsView: React.FC = () => {
                     key={stage.id}
                     className="px-3 py-2 h-[44px] flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {/* Reorder Buttons */}
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex flex-col gap-0.5 shrink-0">
                         <button
                           onClick={() => moveSchoolStage(idx, 'up')}
                           disabled={idx === 0}
@@ -616,7 +634,7 @@ export const SettingsView: React.FC = () => {
                           title="Move down"
                           className="w-4 h-3.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 disabled:opacity-20 cursor-pointer"
                         >
-                          <ArrowDown className="w-3.5 h-3" />
+                          <ArrowDown className="w-3 h-3" />
                         </button>
                       </div>
 
@@ -625,30 +643,38 @@ export const SettingsView: React.FC = () => {
                         className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: stage.color }}
                       />
-                      <span className="font-semibold text-slate-900 text-[13px]">{stage.name}</span>
+                      <span className="font-semibold text-slate-900 text-[13px] truncate max-w-[280px]" title={stage.name}>
+                        {stage.name}
+                      </span>
 
                       {/* School count */}
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium shrink-0">
                         {stage.schoolCount ?? 0} {(stage.schoolCount ?? 0) === 1 ? 'school' : 'schools'}
                       </span>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => setEditingSchoolStage(stage)}
-                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         title="Edit stage"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete stage "${stage.name}"?`)) {
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Delete stage '${stage.name}'?`,
+                            message: 'This cannot be undone. Schools at this stage will need a new stage assigned.',
+                            confirmText: 'Delete',
+                            isDestructive: true,
+                          })
+                          if (ok) {
                             deleteSchoolStageMutation.mutate(stage.id)
                           }
                         }}
-                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="w-7 h-7 inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete stage"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -768,11 +794,12 @@ export const SettingsView: React.FC = () => {
             >
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
-                  Name
+                  Name (max 30 characters)
                 </label>
                 <input
                   name="name"
                   defaultValue={editingCategory.name}
+                  maxLength={30}
                   className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />
@@ -828,11 +855,12 @@ export const SettingsView: React.FC = () => {
             >
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
-                  Name
+                  Name (max 30 characters)
                 </label>
                 <input
                   name="name"
                   defaultValue={editingSchoolStage.name}
+                  maxLength={30}
                   className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   required
                 />

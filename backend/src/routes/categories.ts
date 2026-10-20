@@ -5,11 +5,11 @@ import { prisma } from '../db.js'
 export const categoriesRouter = Router()
 
 const CreateCategorySchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().min(1, 'Name is required').max(30, 'Category name must not exceed 30 characters'),
 })
 
 const UpdateCategorySchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().min(1, 'Name is required').max(30, 'Category name must not exceed 30 characters'),
 })
 
 const ReorderSchema = z.object({

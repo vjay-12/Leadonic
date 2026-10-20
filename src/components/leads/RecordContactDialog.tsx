@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { LeadStatus, ContactLog } from '../../types'
 import { getTodayIST, isFutureDateIST } from '../../../lib/date'
 import { X, AlertCircle, PhoneCall } from 'lucide-react'
+import { Select, SelectOption } from '../common/Select'
 
 interface RecordContactDialogProps {
   isOpen: boolean
@@ -34,6 +35,18 @@ export const RecordContactDialog: React.FC<RecordContactDialogProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const today = getTodayIST()
+
+  const statusOptions: SelectOption<number | ''>[] = useMemo(
+    () => [
+      { value: '', label: 'Select Status' },
+      ...statuses.map((s) => ({
+        value: s.id,
+        label: s.name,
+        color: s.color,
+      })),
+    ],
+    [statuses]
+  )
 
   useEffect(() => {
     if (isOpen) {
@@ -176,32 +189,13 @@ export const RecordContactDialog: React.FC<RecordContactDialogProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Status *
               </label>
-              <select
-                required
+              <Select
                 value={statusId}
-                onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Select Status</option>
-                {statuses.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              {statusId && (
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      backgroundColor: statuses.find((s) => s.id === Number(statusId))?.color || '#94A3B8',
-                    }}
-                  />
-                  <span className="text-[11px] text-slate-500">
-                    {statuses.find((s) => s.id === Number(statusId))?.name}
-                  </span>
-                </div>
-              )}
+                onChange={(val) => setStatusId(val)}
+                options={statusOptions}
+                width="w-full"
+                ariaLabel="Status"
+              />
             </div>
 
             {/* Notes */}

@@ -30,6 +30,15 @@ const CreateLeadSchema = z.object({
 
 const UpdateLeadSchema = CreateLeadSchema.partial()
 
+export const ALLOWED_LEAD_SORTS: Record<string, any[]> = {
+  'createdAt:desc': [{ createdAt: 'desc' }, { id: 'desc' }],
+  'createdAt:asc': [{ createdAt: 'asc' }, { id: 'desc' }],
+  'lastContact:desc': [{ lastContactDate: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
+  'lastContact:asc': [{ lastContactDate: { sort: 'asc', nulls: 'last' } }, { id: 'desc' }],
+  'title:asc': [{ titleLower: 'asc' }, { id: 'desc' }],
+  'title:desc': [{ titleLower: 'desc' }, { id: 'desc' }],
+}
+
 // GET /api/leads
 leadsRouter.get('/', async (req: Request, res: Response) => {
   try {
@@ -39,18 +48,14 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
     const priorityParam = typeof req.query['priority'] === 'string' ? req.query['priority'] : ''
     const page = Math.max(1, parseInt(req.query['page'] as string, 10) || 1)
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query['pageSize'] as string, 10) || 50))
-    const sortParam = typeof req.query['sort'] === 'string' ? req.query['sort'] : 'createdAt:desc'
+    const sortParam = typeof req.query['sort'] === 'string' && req.query['sort'].trim() ? req.query['sort'].trim() : 'createdAt:desc'
 
-    const [sortField, sortOrder] = sortParam.split(':')
-    const validSortFields: Record<string, string> = {
-      createdAt: 'createdAt',
-      title: 'title',
-      reviewRating: 'reviewRating',
-      priorityScore: 'priorityScore',
+    if (!ALLOWED_LEAD_SORTS[sortParam]) {
+      return res.status(400).json({
+        error: `Invalid sort value: ${sortParam}. Allowed values are: ${Object.keys(ALLOWED_LEAD_SORTS).join(', ')}`,
+      })
     }
-    const orderBy: any = {}
-    const field = sortField && validSortFields[sortField] ? validSortFields[sortField] : 'createdAt'
-    orderBy[field] = sortOrder === 'asc' ? 'asc' : 'desc'
+    const orderBy = ALLOWED_LEAD_SORTS[sortParam]
 
     const where: any = {}
 
@@ -117,7 +122,7 @@ leadsRouter.get('/', async (req: Request, res: Response) => {
     const items = leads.map((l) => ({
       ...l,
       latestNote: l.contactLogs[0]?.notes ?? null,
-      lastContactDate: l.contactLogs[0]?.contactDate ?? null,
+      lastContactDate: l.lastContactDate ? l.lastContactDate.toISOString().split('T')[0] : (l.contactLogs[0]?.contactDate ? l.contactLogs[0].contactDate.toISOString().split('T')[0] : null),
       contactLogs: undefined,
     }))
 
@@ -140,6 +145,8 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
     const statusIdParam = typeof req.query['statusId'] === 'string' ? req.query['statusId'] : ''
     const categoryIdParam = typeof req.query['categoryId'] === 'string' ? req.query['categoryId'] : ''
     const priorityParam = typeof req.query['priority'] === 'string' ? req.query['priority'] : ''
+    const sortParam = typeof req.query['sort'] === 'string' && req.query['sort'].trim() ? req.query['sort'].trim() : 'createdAt:desc'
+    const orderBy = ALLOWED_LEAD_SORTS[sortParam] || ALLOWED_LEAD_SORTS['createdAt:desc']
 
     const where: any = {}
 
@@ -195,7 +202,7 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
     })
 
     const headers = [
@@ -227,7 +234,7 @@ leadsRouter.get('/export.csv', async (req: Request, res: Response) => {
       l.category?.name || '',
       l.status?.name || 'Not called',
       l.contactLogs[0]?.notes || '',
-      l.contactLogs[0]?.contactDate ? formatDateShort(l.contactLogs[0].contactDate) : '',
+      l.lastContactDate ? formatDateShort(l.lastContactDate) : (l.contactLogs[0]?.contactDate ? formatDateShort(l.contactLogs[0].contactDate) : ''),
       l.priority || '',
       l.priorityScore != null ? String(l.priorityScore) : '',
       l.reviewRating != null ? String(l.reviewRating) : '',

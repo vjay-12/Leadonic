@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Download, RefreshCw, AlertCircle, Calendar } from 'lucide-react'
+import { Select, SelectOption } from '../common/Select'
 
 export const ReportView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -13,6 +14,17 @@ export const ReportView: React.FC = () => {
     queryKey: ['categories'],
     queryFn: () => api.getCategories(),
   })
+
+  const categoryOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: '', label: 'All Categories' },
+      ...categories.map((c) => ({
+        value: String(c.id),
+        label: c.name,
+      })),
+    ],
+    [categories]
+  )
 
   // Fetch Report Data
   const {
@@ -59,44 +71,37 @@ export const ReportView: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white border border-slate-200 rounded-[10px] p-2.5 shadow-2xs flex flex-wrap items-center gap-2.5">
+      <div className="bg-white border border-slate-200 rounded-[10px] p-2.5 shadow-2xs flex flex-wrap items-center gap-2">
         {/* Category filter */}
-        <div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-          >
-            <option value="">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          value={selectedCategory}
+          onChange={(val) => setSelectedCategory(val)}
+          options={categoryOptions}
+          fitToOptions
+          ariaLabel="Filter by category"
+        />
 
         {/* Date From */}
-        <div className="h-8 flex items-center gap-1.5 text-[11px] text-slate-600 bg-slate-50 border border-slate-300 rounded-lg px-2.5">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>From:</span>
+        <div className="h-8 flex items-center gap-1.5 text-[13px] text-slate-600 bg-white border border-slate-300 rounded-lg px-2.5 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-[12px] text-slate-500">From:</span>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="bg-transparent text-[12px] text-slate-800 focus:outline-none cursor-pointer"
+            className="bg-transparent text-[13px] text-slate-800 focus:outline-none cursor-pointer"
           />
         </div>
 
         {/* Date To */}
-        <div className="h-8 flex items-center gap-1.5 text-[11px] text-slate-600 bg-slate-50 border border-slate-300 rounded-lg px-2.5">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>To:</span>
+        <div className="h-8 flex items-center gap-1.5 text-[13px] text-slate-600 bg-white border border-slate-300 rounded-lg px-2.5 focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-[12px] text-slate-500">To:</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="bg-transparent text-[12px] text-slate-800 focus:outline-none cursor-pointer"
+            className="bg-transparent text-[13px] text-slate-800 focus:outline-none cursor-pointer"
           />
         </div>
 

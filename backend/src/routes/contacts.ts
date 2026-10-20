@@ -12,17 +12,21 @@ export async function syncLeadStatus(tx: any, leadId: number) {
       { contactDate: 'desc' },
       { createdAt: 'desc' },
     ],
-    select: { statusId: true },
+    select: { statusId: true, contactDate: true },
   })
 
   const newStatusId = latestLog ? latestLog.statusId : null
+  const lastContactDate = latestLog ? latestLog.contactDate : null
 
   await tx.lead.update({
     where: { id: leadId },
-    data: { statusId: newStatusId },
+    data: {
+      statusId: newStatusId,
+      lastContactDate: lastContactDate,
+    },
   })
 
-  return newStatusId
+  return { newStatusId, lastContactDate }
 }
 
 const UpdateContactSchema = z.object({

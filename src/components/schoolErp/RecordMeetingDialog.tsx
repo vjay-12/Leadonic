@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { SchoolStage, SchoolContact, SchoolMeeting } from '../../types'
 import { getTodayIST, isFutureDateIST } from '../../../lib/date'
 import { X, AlertCircle, Calendar, Plus } from 'lucide-react'
+import { Select, SelectOption } from '../common/Select'
 
 interface RecordMeetingDialogProps {
   isOpen: boolean
@@ -38,6 +39,39 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
   const [stageId, setStageId] = useState<number | ''>(stages[0]?.id || '')
   const [notes, setNotes] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const meetingTypeOptions: SelectOption<string>[] = useMemo(
+    () => [
+      { value: 'Call', label: 'Call' },
+      { value: 'Visit', label: 'Visit' },
+      { value: 'Demo', label: 'Demo' },
+      { value: 'Follow-up', label: 'Follow-up' },
+    ],
+    []
+  )
+
+  const stageOptions: SelectOption<number | ''>[] = useMemo(
+    () => [
+      { value: '', label: 'Select Stage' },
+      ...stages.map((s) => ({
+        value: s.id,
+        label: s.name,
+        color: s.color,
+      })),
+    ],
+    [stages]
+  )
+
+  const contactOptions: SelectOption<number | ''>[] = useMemo(
+    () => [
+      { value: '', label: 'None / Not specified' },
+      ...contacts.map((c) => ({
+        value: c.id,
+        label: `${c.name}${c.role ? ` (${c.role})` : ''}${c.isPrimary ? ' • Primary' : ''}`,
+      })),
+    ],
+    [contacts]
+  )
 
   // Inline "+ New contact" state
   const [showNewContactForm, setShowNewContactForm] = useState(false)
@@ -248,17 +282,13 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Type *
               </label>
-              <select
-                required
+              <Select
                 value={type}
-                onChange={(e) => setType(e.target.value as any)}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="Call">Call</option>
-                <option value="Visit">Visit</option>
-                <option value="Demo">Demo</option>
-                <option value="Follow-up">Follow-up</option>
-              </select>
+                onChange={(val) => setType(val as any)}
+                options={meetingTypeOptions}
+                width="w-full"
+                ariaLabel="Meeting Type"
+              />
             </div>
 
             {/* Stage */}
@@ -266,19 +296,13 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
               <label className="block text-[11px] font-semibold text-slate-700 uppercase mb-1">
                 Stage *
               </label>
-              <select
-                required
+              <Select
                 value={stageId}
-                onChange={(e) => setStageId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">Select Stage</option>
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setStageId(val)}
+                options={stageOptions}
+                width="w-full"
+                ariaLabel="School Stage"
+              />
             </div>
           </div>
 
@@ -361,18 +385,13 @@ export const RecordMeetingDialog: React.FC<RecordMeetingDialogProps> = ({
                 </div>
               </div>
             ) : (
-              <select
+              <Select
                 value={contactId}
-                onChange={(e) => setContactId(e.target.value ? Number(e.target.value) : '')}
-                className="w-full h-8 px-3 bg-white border border-slate-300 rounded-lg text-[13px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
-              >
-                <option value="">None / Not specified</option>
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.role ? `(${c.role})` : ''} {c.isPrimary ? '• Primary' : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setContactId(val)}
+                options={contactOptions}
+                width="w-full"
+                ariaLabel="Contact"
+              />
             )}
           </div>
 
