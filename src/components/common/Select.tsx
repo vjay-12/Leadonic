@@ -5,6 +5,7 @@ import { ChevronDown, Check } from 'lucide-react'
 export interface SelectOption<T = string | number> {
   value: T
   label: string
+  shortLabel?: string
   color?: string
   icon?: React.ReactNode
   disabled?: boolean
@@ -18,7 +19,7 @@ export interface SelectProps<T = string | number> {
   disabled?: boolean
   className?: string
   width?: string | number // Explicit width, e.g. 180, '180px', 'w-full'
-  fitToOptions?: boolean // If true, calculates width based on longest label (110px-200px)
+  fitToOptions?: boolean // If true, calculates compact width based on longest label (95px-160px)
   prefixIcon?: React.ReactNode
   ariaLabel?: string
   id?: string
@@ -69,13 +70,12 @@ export function Select<T extends string | number = string | number>({
       computedWidthStyle.width = width
     }
   } else if (fitToOptions && options.length > 0) {
-    // Calculate width based on longest label
-    const maxChars = Math.max(...options.map((o) => (o.label || '').length))
-    // ~7.5px per char + 20px padding + 16px chevron + 16px icons/dots + 12px margin
+    // Calculate compact width based on longest label without excessive whitespace
+    const maxChars = Math.max(...options.map((o) => (o.shortLabel || o.label || '').length))
     const hasColorOrIcon = options.some((o) => o.color || o.icon) || Boolean(prefixIcon)
-    const basePadding = hasColorOrIcon ? 56 : 42
-    const calculatedWidth = Math.round(maxChars * 7.5) + basePadding
-    const clampedWidth = Math.max(110, Math.min(200, calculatedWidth))
+    const basePadding = hasColorOrIcon ? 40 : 30
+    const calculatedWidth = Math.round(maxChars * 6.5) + basePadding
+    const clampedWidth = Math.max(95, Math.min(150, calculatedWidth))
     computedWidthStyle.width = `${clampedWidth}px`
   }
 
@@ -87,8 +87,8 @@ export function Select<T extends string | number = string | number>({
     const viewportWidth = window.innerWidth
 
     const maxOptionLen = options.length > 0 ? Math.max(...options.map((o) => (o.label || '').length)) : 0
-    const estimatedOptionWidth = Math.round(maxOptionLen * 7.5) + 48
-    let popoverWidth = Math.min(280, Math.max(rect.width, estimatedOptionWidth, 140))
+    const estimatedOptionWidth = Math.round(maxOptionLen * 6.6) + 38
+    let popoverWidth = Math.min(250, Math.max(rect.width, estimatedOptionWidth))
     if (popoverWidth > viewportWidth - 16) {
       popoverWidth = Math.max(100, viewportWidth - 16)
     }
@@ -99,7 +99,8 @@ export function Select<T extends string | number = string | number>({
 
     let left = rect.left
     if (left + popoverWidth > viewportWidth - 8) {
-      left = Math.max(8, viewportWidth - popoverWidth - 8)
+      // Right-align popover with trigger if it would overflow the right edge of viewport
+      left = Math.max(8, rect.right - popoverWidth)
     }
 
     if (openUpward) {
@@ -304,25 +305,25 @@ export function Select<T extends string | number = string | number>({
         onClick={() => (isOpen ? handleClose() : handleOpen())}
         onKeyDown={handleKeyDown}
         style={computedWidthStyle}
-        className={`h-8 px-2.5 bg-white border rounded-lg text-[13px] text-slate-900 flex items-center justify-between gap-1.5 transition-colors cursor-pointer select-none text-left shrink-0 ${
+        className={`h-8 px-2 bg-white border rounded-lg text-[12.5px] text-slate-800 flex items-center justify-between gap-1 transition-colors cursor-pointer select-none text-left shrink-0 ${
           isOpen
-            ? 'border-blue-600 ring-2 ring-blue-600'
-            : 'border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600'
+            ? 'border-blue-600 ring-2 ring-blue-600/30'
+            : 'border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600'
         } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : ''} ${computedWidthClass} ${className}`}
       >
         <span className="min-w-0 flex-1 flex items-center gap-1.5 truncate">
-          {prefixIcon && <span className="shrink-0 text-slate-500">{prefixIcon}</span>}
+          {prefixIcon && <span className="shrink-0 text-slate-400">{prefixIcon}</span>}
           {selectedOption ? (
             <>
               {selectedOption.icon && <span className="shrink-0">{selectedOption.icon}</span>}
               {selectedOption.color && (
                 <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: selectedOption.color }}
                 />
               )}
               <span className="truncate" title={selectedOption.label}>
-                {selectedOption.label}
+                {selectedOption.shortLabel || selectedOption.label}
               </span>
             </>
           ) : (
@@ -330,7 +331,7 @@ export function Select<T extends string | number = string | number>({
           )}
         </span>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 shrink-0 ml-1 transition-transform duration-150 ${
+          className={`w-3.5 h-3.5 text-slate-400 shrink-0 ml-0.5 transition-transform duration-150 ${
             isOpen ? 'rotate-180 text-blue-600' : ''
           }`}
         />
@@ -350,10 +351,10 @@ export function Select<T extends string | number = string | number>({
               bottom: popoverCoords.bottom !== undefined ? `${popoverCoords.bottom}px` : undefined,
               left: `${popoverCoords.left}px`,
               width: `${popoverCoords.width}px`,
-              maxHeight: '240px',
+              maxHeight: '220px',
               zIndex: 9999,
             }}
-            className="bg-white border border-slate-200 rounded-[10px] p-1 shadow-lg overflow-y-auto animate-in fade-in-50 zoom-in-95 duration-100 focus:outline-none"
+            className="bg-white border border-slate-200 rounded-lg p-1 shadow-md overflow-y-auto animate-in fade-in-50 zoom-in-95 duration-100 focus:outline-none"
           >
             {options.map((option, idx) => {
               const isSelected = option.value === value
@@ -367,25 +368,27 @@ export function Select<T extends string | number = string | number>({
                   title={option.label}
                   onClick={() => selectOption(option)}
                   onMouseEnter={() => setHighlightedIndex(idx)}
-                  className={`h-8 px-2 rounded-md text-[13px] flex items-center justify-between gap-2 cursor-pointer select-none transition-colors ${
+                  className={`h-7 px-2 rounded-md text-[12.5px] flex items-center justify-between gap-1.5 cursor-pointer select-none transition-colors ${
                     option.disabled
                       ? 'opacity-40 cursor-not-allowed'
+                      : isSelected
+                      ? 'bg-blue-50 text-blue-700 font-medium'
                       : isHighlighted
                       ? 'bg-slate-100 text-slate-900'
                       : 'text-slate-700 hover:bg-slate-50'
-                  } ${isSelected ? 'font-semibold text-blue-600' : ''}`}
+                  }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     {option.icon && <span className="shrink-0">{option.icon}</span>}
                     {option.color && (
                       <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: option.color }}
                       />
                     )}
                     <span className="truncate">{option.label}</span>
                   </div>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1.5" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1" />}
                 </div>
               )
             })}

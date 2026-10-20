@@ -8,9 +8,9 @@ import { SchoolContact, SchoolMeeting } from '../../types'
 import { formatDateMedium, formatDateTimeIST } from '../../../lib/date'
 import { RecordMeetingDialog } from './RecordMeetingDialog'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
+import { DetailToolbar } from '../common/PageHeader'
 import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import {
-  ArrowLeft,
   MapPin,
   Users,
   Edit3,
@@ -386,94 +386,90 @@ export const SchoolDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-3 pb-6">
-      {/* 1. Top Action Toolbar Row (Outside & Above Header Card) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5">
-        <Link
-          to="/school-erp"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to School ERP</span>
-        </Link>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {school.lead && (
-            <Link
-              to={`/leads/${school.lead.id}`}
-              className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors shadow-2xs"
-            >
-              <span>Linked Lead #{school.lead.id}</span>
-              <ExternalLink className="w-3 h-3 text-blue-600" />
-            </Link>
-          )}
-
-          {!isArchived ? (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setMeetingToEdit(null)
-                  setIsRecordMeetingOpen(true)
-                }}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shadow-2xs"
+    <div className="w-full space-y-3.5 pb-6">
+      {/* 1. Standardized Detail Toolbar */}
+      <DetailToolbar
+        backTo="/school-erp"
+        backLabel="Back to School ERP"
+        actions={
+          <>
+            {school.lead && (
+              <Link
+                to={`/leads/${school.lead.id}`}
+                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors shadow-xs"
               >
-                <PhoneCall className="w-3.5 h-3.5" />
-                <span>Record Meeting</span>
-              </button>
+                <span>Linked Lead #{school.lead.id}</span>
+                <ExternalLink className="w-3 h-3 text-blue-600" />
+              </Link>
+            )}
 
-              <button
-                type="button"
-                onClick={openEditModal}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-slate-600" />
-                <span>Edit</span>
-              </button>
+            {!isArchived ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMeetingToEdit(null)
+                    setIsRecordMeetingOpen(true)
+                  }}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  <span>Record Meeting</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleArchive}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              >
-                <Archive className="w-3.5 h-3.5 text-amber-600" />
-                <span>Archive</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleRestore}
-                disabled={restoreMutation.isPending}
-                className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer shadow-2xs disabled:opacity-60"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-                <span>{restoreMutation.isPending ? 'Restoring...' : 'Restore'}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Edit</span>
+                </button>
 
-              <button
-                type="button"
-                disabled={!deleteEnabled}
-                aria-disabled={!deleteEnabled}
-                onClick={() => {
-                  if (deleteEnabled) handleDeleteSchool()
-                }}
-                className={`inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-semibold rounded-lg transition-colors shadow-2xs ${
-                  deleteEnabled
-                    ? 'text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 cursor-pointer'
-                    : 'text-slate-400 bg-slate-50 border border-slate-200 cursor-not-allowed opacity-60'
-                }`}
-                title={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
-                aria-label={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                <span>Delete</span>
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+                <button
+                  type="button"
+                  onClick={handleArchive}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  <Archive className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Archive</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRestore}
+                  disabled={restoreMutation.isPending}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{restoreMutation.isPending ? 'Restoring...' : 'Restore'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!deleteEnabled}
+                  aria-disabled={!deleteEnabled}
+                  onClick={() => {
+                    if (deleteEnabled) handleDeleteSchool()
+                  }}
+                  className={`inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium rounded-lg transition-colors shadow-xs ${
+                    deleteEnabled
+                      ? 'text-rose-700 bg-rose-50 border border-rose-300 hover:bg-rose-100 cursor-pointer'
+                      : 'text-slate-400 bg-slate-50 border border-slate-200 cursor-not-allowed opacity-60'
+                  }`}
+                  title={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
+                  aria-label={deleteEnabled ? `Delete ${school.name} permanently` : 'Delete is disabled'}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Delete</span>
+                </button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {/* 2. Header Card (Yaazhi Product Detail Style) */}
       <div className="bg-white border border-slate-200 rounded-[10px] p-3.5 shadow-2xs">

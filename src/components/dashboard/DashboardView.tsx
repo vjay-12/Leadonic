@@ -2,6 +2,7 @@ import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Users, Calendar, PhoneOff, ThumbsUp, RefreshCw, AlertCircle, PhoneCall } from 'lucide-react'
+import { PageHeader } from '../common/PageHeader'
 
 export const DashboardView: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -11,11 +12,11 @@ export const DashboardView: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-[13px] text-slate-500">Pipeline summary and key metrics</p>
-        </div>
+      <div className="space-y-3.5">
+        <PageHeader
+          title="Dashboard"
+          subtitle="Pipeline summary and key calling metrics"
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-20 bg-white border border-slate-200 rounded-[10px] p-3.5 animate-pulse" />
@@ -94,20 +95,20 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-3.5">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-[13px] text-slate-500">Pipeline summary and key calling metrics</p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh</span>
-        </button>
-      </div>
+      {/* Standardized Header */}
+      <PageHeader
+        title="Dashboard"
+        subtitle="Pipeline summary and key calling metrics"
+        actions={
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            <span>Refresh</span>
+          </button>
+        }
+      />
 
       {/* Top 5 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">

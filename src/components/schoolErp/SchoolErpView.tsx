@@ -9,6 +9,7 @@ import { RecordMeetingDialog } from './RecordMeetingDialog'
 import { SegmentedTabs } from '../common/SegmentedTabs'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { Select, SelectOption } from '../common/Select'
+import { PageHeader } from '../common/PageHeader'
 import {
   Search,
   Plus,
@@ -206,29 +207,24 @@ export const SchoolErpView: React.FC = () => {
   const totalPages = Math.ceil(total / pageSize) || 1
 
   return (
-    <div className="space-y-3">
-      {/* Header and Add Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-blue-600" />
-            <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-none">School ERP</h1>
-          </div>
-          <p className="text-[13px] text-slate-500 mt-1">
-            Manage school prospects, campus contacts, and demo meetings
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            resetAddForm()
-            setIsAddModalOpen(true)
-          }}
-          className="inline-flex items-center gap-1.5 h-8 px-3 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors shadow-2xs cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add School</span>
-        </button>
-      </div>
+    <div className="space-y-3.5">
+      {/* Standardized Header */}
+      <PageHeader
+        title="School ERP"
+        subtitle="Manage school prospects, campus contacts, and demo meetings"
+        actions={
+          <button
+            onClick={() => {
+              resetAddForm()
+              setIsAddModalOpen(true)
+            }}
+            className="inline-flex items-center gap-1.5 h-8 px-3 bg-blue-600 text-white rounded-lg text-[13px] font-medium hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add School</span>
+          </button>
+        }
+      />
 
       {/* Toolbar / Filters */}
       <div className="flex flex-wrap items-center gap-2 bg-white p-2.5 border border-slate-200 rounded-[10px] shadow-2xs">

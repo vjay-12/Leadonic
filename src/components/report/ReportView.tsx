@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Download, RefreshCw, AlertCircle, Calendar } from 'lucide-react'
 import { Select, SelectOption } from '../common/Select'
+import { PageHeader } from '../common/PageHeader'
 
 export const ReportView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -54,21 +55,20 @@ export const ReportView: React.FC = () => {
 
   return (
     <div className="space-y-3.5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Pipeline Report</h1>
-          <p className="text-[13px] text-slate-500">Cross-tabulation matrix of categories and calling outcomes</p>
-        </div>
-
-        <button
-          onClick={handleDownloadCsv}
-          className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer shadow-xs"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Download CSV</span>
-        </button>
-      </div>
+      {/* Standardized Header */}
+      <PageHeader
+        title="Pipeline Report"
+        subtitle="Cross-tabulation matrix of categories and calling outcomes"
+        actions={
+          <button
+            onClick={handleDownloadCsv}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download CSV</span>
+          </button>
+        }
+      />
 
       {/* Filter Bar */}
       <div className="bg-white border border-slate-200 rounded-[10px] p-2.5 shadow-2xs flex flex-wrap items-center gap-2">

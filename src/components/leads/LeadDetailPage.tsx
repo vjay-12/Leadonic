@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useToast } from '../../context/ToastContext'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
+import { DetailToolbar } from '../common/PageHeader'
 import { formatDateMedium, formatDateTimeIST } from '../../../lib/date'
 import {
   ArrowLeft,
@@ -149,38 +150,35 @@ export const LeadDetailPage: React.FC = () => {
   const lastContactLog = contactLogs[0]
 
   return (
-    <div className="w-full flex-1 flex flex-col space-y-3">
-      {/* 1. Top Slim Row: Only Back to Leads (13px, ~24px tall) & School Link if applicable */}
-      <div className="flex items-center justify-between gap-3 h-6 shrink-0">
-        <Link
-          to="/leads"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Leads</span>
-        </Link>
-
-        {lead.category?.name.toLowerCase() === 'school' &&
-          (lead.school ? (
-            <Link
-              to={`/school-erp/${lead.school.id}`}
-              className="h-7 px-2.5 text-[12px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Open School</span>
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => moveToSchoolMutation.mutate()}
-              disabled={moveToSchoolMutation.isPending}
-              className="h-7 px-2.5 text-[12px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-60"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{moveToSchoolMutation.isPending ? 'Moving...' : 'Move to School ERP'}</span>
-            </button>
-          ))}
-      </div>
+    <div className="w-full flex-1 flex flex-col space-y-3.5">
+      {/* 1. Standardized Detail Toolbar */}
+      <DetailToolbar
+        backTo="/leads"
+        backLabel="Back to Leads"
+        actions={
+          lead.category?.name.toLowerCase() === 'school' ? (
+            lead.school ? (
+              <Link
+                to={`/school-erp/${lead.school.id}`}
+                className="h-8 px-3 text-[13px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-xs"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Open School</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => moveToSchoolMutation.mutate()}
+                disabled={moveToSchoolMutation.isPending}
+                className="h-8 px-3 text-[13px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-60"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{moveToSchoolMutation.isPending ? 'Moving...' : 'Move to School ERP'}</span>
+              </button>
+            )
+          ) : undefined
+        }
+      />
 
       {/* 2. Header Card: 14px padding, 44px initials, badges, 20px title, address link, 4 key figure cells on right */}
       <div className="bg-white border border-slate-200 rounded-[10px] p-3.5 shadow-2xs shrink-0">

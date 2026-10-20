@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { LeadStatus, LeadCategory, SchoolStage } from '../../types'
 import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, X, AlertCircle } from 'lucide-react'
+import { PageHeader } from '../common/PageHeader'
 
 export const SettingsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'statuses' | 'categories' | 'schoolStages'>('statuses')
@@ -246,12 +247,12 @@ export const SettingsView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div>
-        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-none">Settings</h1>
-        <p className="text-[13px] text-slate-500 mt-1">Manage pipeline lead statuses, categories, and school stages</p>
-      </div>
+    <div className="space-y-3.5">
+      {/* Standardized Header */}
+      <PageHeader
+        title="Settings"
+        subtitle="Manage pipeline lead statuses, categories, and school stages"
+      />
 
       {/* Tabs */}
       <div className="border-b border-slate-200">

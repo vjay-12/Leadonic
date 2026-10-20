@@ -11,6 +11,7 @@ import { RecordContactDialog } from './RecordContactDialog'
 import { StatusPill, useStatusPillWidth } from '../common/StatusPill'
 import { SegmentedTabs } from '../common/SegmentedTabs'
 import { Select, SelectOption } from '../common/Select'
+import { PageHeader } from '../common/PageHeader'
 import { useDeleteEnabled } from '../../hooks/useAppConfig'
 import { formatDateShort } from '../../../lib/date'
 import {
@@ -251,12 +252,12 @@ export const LeadsView: React.FC = () => {
 
   const sortOptions: SelectOption<string>[] = useMemo(
     () => [
-      { value: 'createdAt:desc', label: 'Date created: newest first' },
-      { value: 'createdAt:asc', label: 'Date created: oldest first' },
-      { value: 'lastContact:desc', label: 'Last contact: most recent first' },
-      { value: 'lastContact:asc', label: 'Last contact: oldest first' },
-      { value: 'title:asc', label: 'Name: A to Z' },
-      { value: 'title:desc', label: 'Name: Z to A' },
+      { value: 'createdAt:desc', label: 'Date created: newest first', shortLabel: 'Newest first' },
+      { value: 'createdAt:asc', label: 'Date created: oldest first', shortLabel: 'Oldest first' },
+      { value: 'lastContact:desc', label: 'Last contact: most recent first', shortLabel: 'Recent contact' },
+      { value: 'lastContact:asc', label: 'Last contact: oldest first', shortLabel: 'Oldest contact' },
+      { value: 'title:asc', label: 'Name: A to Z', shortLabel: 'Name: A to Z' },
+      { value: 'title:desc', label: 'Name: Z to A', shortLabel: 'Name: Z to A' },
     ],
     []
   )
@@ -275,56 +276,55 @@ export const LeadsView: React.FC = () => {
   )
 
   return (
-    <div className="space-y-3">
-      {/* 1. Header: Title (20px) + Subtitle (13px) on left, 32px Buttons on right */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight leading-tight">Leads</h1>
-          <p className="text-[13px] text-slate-500 mt-0.5">Manage and track cold calling prospects</p>
-        </div>
+    <div className="space-y-3.5">
+      {/* 1. Standardized Header: Title + Subtitle on left, Action buttons on right */}
+      <PageHeader
+        title="Leads"
+        subtitle="Manage and track cold calling prospects"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Lead</span>
+            </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Lead</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="h-8 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5 text-slate-500" />
+              <span>Import</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setIsImportModalOpen(true)}
-            className="h-8 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
-            <span>Import</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="h-8 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
+              title="Export filtered leads to CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Export CSV</span>
+            </button>
+          </>
+        }
+      />
 
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            className="h-8 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[13px] font-medium inline-flex items-center gap-2 shadow-xs cursor-pointer transition-colors"
-            title="Export filtered leads to CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Filter Bar: Search takes remaining width (flex: 1, min 240px), 8px gaps */}
-      <div className="p-2.5 bg-white border border-slate-200 rounded-[10px] shadow-2xs flex items-center gap-2 flex-nowrap overflow-x-auto">
-        {/* Search Input: flex: 1, min-w-[240px] */}
-        <div className="relative flex-1 min-w-[240px] h-8">
+      {/* 2. Filter Bar: Search takes remaining width (flex: 1, min 130px), compact 6px gaps */}
+      <div className="p-2 bg-white border border-slate-200 rounded-[10px] shadow-2xs flex items-center gap-1.5 flex-nowrap">
+        {/* Search Input: flex: 1, min-w-[130px] */}
+        <div className="relative flex-1 min-w-[130px] h-8">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by title, phone, address..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full h-8 pl-8 pr-7 bg-slate-50 border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full h-8 pl-8 pr-7 bg-slate-50 border border-slate-300 rounded-lg text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
           />
           {searchInput && (
             <button
@@ -346,7 +346,7 @@ export const LeadsView: React.FC = () => {
             setPage(1)
           }}
           options={[
-            { value: 'active', label: 'Active Leads' },
+            { value: 'active', label: 'Active' },
             { value: 'archived', label: 'Archived' },
           ]}
         />
@@ -387,12 +387,12 @@ export const LeadsView: React.FC = () => {
           ariaLabel="Filter by priority"
         />
 
-        {/* Sort By Dropdown (fixed width 180px, sort icon) */}
+        {/* Sort By Dropdown (fitToOptions, sort icon) */}
         <Select
           value={sortFilter}
           onChange={handleSortChange}
           options={sortOptions}
-          width={180}
+          fitToOptions
           prefixIcon={<ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
           ariaLabel="Sort leads"
         />
@@ -411,7 +411,7 @@ export const LeadsView: React.FC = () => {
               handleSortChange('createdAt:desc')
               setPage(1)
             }}
-            className="h-8 px-2.5 text-[12px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer transition-colors shrink-0"
+            className="h-8 px-2 text-[12px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
           >
             Reset Filters
           </button>
